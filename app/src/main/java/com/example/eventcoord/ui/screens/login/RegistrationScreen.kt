@@ -185,13 +185,13 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(vertical = 8.dp)
             ){
-                Button( // Botón de Ingreso
+                Button( // Botón para Registrar
                     onClick = { testNotification.value = true },
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Text("Crear Cuenta")
                 }
-                Button( // Botón de Ingreso
+                Button( // Botón para Cancelar
                     onClick = onBackClick,
                     modifier = Modifier.padding(8.dp)
                 ) {

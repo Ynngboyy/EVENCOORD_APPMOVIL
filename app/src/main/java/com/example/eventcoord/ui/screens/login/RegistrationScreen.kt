@@ -33,7 +33,7 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
     val logogris = painterResource(R.drawable.eventcoord_logo_gris) // Imagen de Logo
     val testNotification = remember { mutableStateOf(false)}
     val notificationProblem = remember { mutableStateOf(false)}
-    val scrollState = rememberScrollState()
+    val scrollState = rememberScrollState() // Permite el mover el contenido de la pantalla
     val scope = rememberCoroutineScope() // Ejecuta la espera de tiempo
     var isLoading by remember { mutableStateOf(false) } // Controla si se ve la carga
     var adminName by remember { mutableStateOf("")} // Variable para guardar el nombre de administrador

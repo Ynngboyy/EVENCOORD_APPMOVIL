@@ -57,7 +57,6 @@ fun AppNavigation() {
         // Ruta 2: Home
         composable("home") {
             HomeScreen(
-                onBackClick = { navController.popBackStack() },
                 onEvent = { navController.navigate("event") },
                 onNewevent = {navController.navigate("newevent")},
                 onProfile = {navController.navigate("profile")}
@@ -75,21 +74,22 @@ fun AppNavigation() {
                 onBackClick = { navController.popBackStack() }
             )
         }
-        //Ruta 5: Event
+        // Ruta 5: Event
         composable  ("event"){
             EventScreen(
                 onBackClick = {navController.popBackStack()}
             )
         }
-        //Ruta 6: NewEvent
+        // Ruta 6: NewEvent
         composable ("newevent"){
             NewEventScreen(
                 onBackClick = {navController.popBackStack()}
             )
         }
-        //Ruta 7: Profile
+        // Ruta 7: Profile
         composable ("profile"){
             ProfileScreen(
+                onLogOut = {navController.navigate("login"){popUpTo(0){inclusive = true} } },
                 onBackClick = {navController.popBackStack()}
             )
         }

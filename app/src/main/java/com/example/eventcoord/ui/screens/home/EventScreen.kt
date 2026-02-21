@@ -10,34 +10,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun EventScreen (onBackClick: () -> Unit) {
-    Scaffold(modifier = Modifier.fillMaxSize(),
-        bottomBar= {
-            Card( // crea la barra con los text button para la navegacion del usuario
-                modifier = Modifier
-                    .fillMaxWidth(),
-                //horizontalAlignment = Alignment.BottomEnd,
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.LightGray
-                )
-            ) {
-                Row(modifier = Modifier.padding(8.dp)) {
-                    Spacer(modifier= Modifier.width(5.dp))
-                    TextButton(
-                        onClick = {}
+    Box(modifier = Modifier.fillMaxSize()){
+        Scaffold(modifier = Modifier.fillMaxSize(),
+            bottomBar= {
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.Black), shape = androidx.compose.ui.graphics.RectangleShape) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()
                     ) {
-                        Text("EDITAR")
-
-                    }
-                    Spacer(modifier= Modifier.width(5.dp))
-
-                        Button(
+                        TextButton(
+                            onClick = {}
+                        ) {
+                            Text(
+                                text = "Editar",
+                                fontSize = 16.sp,
+                                lineHeight = 16.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        Spacer(modifier= Modifier.width(5.dp))
+                        IconButton(
                             onClick = onBackClick,
-                            modifier = Modifier
-                                //.align(Alignment.End)
-                                .padding(5.dp)
+                            modifier = Modifier.padding(5.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBackIosNew,
@@ -45,30 +44,28 @@ fun EventScreen (onBackClick: () -> Unit) {
                                 tint = Color.White
                             )
                         }
-
+                    }
+                }
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize() //
+                    .padding(innerPadding)
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text="Futura Visualizacion de informacion",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                    )
                 }
             }
         }
-        ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize() //
-                .padding(innerPadding)
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-           Row(
-               verticalAlignment = Alignment.CenterVertically
-           ) {
-               Text(
-                   text="NO TIENES EVENTOS RECIENTES",
-                   textAlign = TextAlign.Center,
-                   modifier = Modifier
-               )
-           }
-
-        }
-
     }
 }

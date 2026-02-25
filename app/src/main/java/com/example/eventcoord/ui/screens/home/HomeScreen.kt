@@ -76,15 +76,6 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                         }
                     }
                 }
-                /*AnimatedVisibility(visible = isVisible) {
-                    Box(
-                        modifier = Modifier
-                            .size(400.dp)
-                            .background(MaterialTheme.colorScheme.primary)
-                    ){
-                        Text("PRUEBA")
-                    }
-                }*/
             }
         ) { innerPadding ->
             Box( //forma la barra superior que contiene el logo y nombre de la aplicacion

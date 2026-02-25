@@ -1,6 +1,7 @@
 package com.example.eventcoord.ui.screens.home
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -18,43 +19,100 @@ import com.example.eventcoord.R
 import com.example.eventcoord.ui.components.LoadingOverlay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.shape.CircleShape // Necesario para el recorte circular
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     val usuario = painterResource(R.drawable.usuario)
     val scope = rememberCoroutineScope() // Ejecuta la espera de tiempo
     var isLoading by remember { mutableStateOf(false) } // Controla si se ve la carga
+    var actualSection by remember { mutableStateOf("Perfil") } // Controla que se muestra (Perfil/Configuracion)
     Box(modifier = Modifier.fillMaxSize()){
         Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBackIosNew,
+                            contentDescription = "Volver",
+                            tint = Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = if (actualSection == "Perfil") "Mi Perfil" else "Mi Configuración",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            },
             bottomBar= {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.Black), shape = androidx.compose.ui.graphics.RectangleShape) {
+                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black), shape = androidx.compose.ui.graphics.RectangleShape) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()
                     ) {
                         TextButton(
-                            onClick = {}
+                            onClick = { actualSection = "Perfil"}
                         ) {
                             Text(
-                                text = "Editar Perfil",
+                                text = "Perfil",
                                 fontSize = 16.sp,
-                                lineHeight = 16.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                color = if(actualSection == "Perfil") Color.White else Color.Gray
                             )
                         }
                         Spacer(modifier= Modifier.width(8.dp))
                         TextButton(
-                            onClick = {}
+                            onClick = { actualSection = "Configuracion"}
                         ) {
                             Text(
                                 text = "Configuración",
                                 fontSize = 16.sp,
-                                lineHeight = 16.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                color = if(actualSection == "Configuracion") Color.White else Color.Gray
                             )
                         }
-                        Spacer(modifier= Modifier.width(8.dp))
+                    }
+                }
+            }
+        ){ innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize() //
+                    .padding(innerPadding)
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                Spacer(modifier = Modifier.height(32.dp))
+                when (actualSection) {
+                    "Perfil" -> {
+                        Image(
+                            painter = usuario,
+                            contentDescription = "Foto de usuario",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .border(4.dp, Color.White, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text("Aquí irán todos tus datos registrados", textAlign = TextAlign.Center)
+                    }
+                    "Configuracion" -> {
+                        Text("Opciones de la aplicación", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(32.dp))
                         TextButton( // Botón para Cerrar Sesion
                             onClick = {
                                 scope.launch {
@@ -74,40 +132,8 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 color = Color.Red
                             )
                         }
-                        Spacer(modifier= Modifier.width(5.dp))
-                        IconButton(
-                            onClick = onBackClick,
-                            modifier = Modifier.padding(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBackIosNew,
-                                contentDescription = null,
-                                tint = Color.White
-                            )
-                        }
                     }
                 }
-            }
-        ){ innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize() //
-                    .padding(innerPadding)
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("PERFIL")
-                Spacer(modifier = Modifier.height(7.dp))
-                Image(
-                    painter = usuario,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .width(160.dp)
-                        .height(160.dp)
-                        .padding(8.dp)
-                )
             }
         }
         LoadingOverlay(isLoading = isLoading) // Coloca el Overlay por encima de lo demas

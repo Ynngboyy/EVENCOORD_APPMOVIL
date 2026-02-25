@@ -7,16 +7,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.*
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,59 +29,12 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
     var isVisible by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize()){
         Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background,
-            bottomBar = {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.Black), shape = androidx.compose.ui.graphics.RectangleShape) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()
-                    ) {
-                        IconButton(
-                            onClick = {},
-                            modifier = Modifier.padding(5.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBackIosNew,
-                                contentDescription = null,
-                                tint = Color.Black
-                            )
-                        }
-                        Spacer(modifier= Modifier.width(5.dp))
-                        TextButton(
-                            onClick = onNewevent
-                        ) {
-                            Text(
-                                text = "Nuevo Evento",
-                                fontSize = 16.sp,
-                                lineHeight = 16.sp,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Spacer(modifier= Modifier.width(5.dp))
-                        IconButton(
-                            onClick = {},
-                            modifier = Modifier.padding(5.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBackIosNew,
-                                contentDescription = null,
-                                tint = Color.Black
-                            )
-                        }
-                    }
-                }
-            }
-        ) { innerPadding ->
-            Box( //forma la barra superior que contiene el logo y nombre de la aplicacion
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
+            topBar = {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .statusBarsPadding() // <--- El padding de estado va AQUÍ, dentro del contenido
-                        .padding(horizontal = 8.dp),
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -123,6 +70,33 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                             .padding(8.dp)
                     )
                 }
+            },
+            bottomBar = {
+                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black), shape = androidx.compose.ui.graphics.RectangleShape) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()
+                    ) {
+                        TextButton(
+                            onClick = onNewevent
+                        ) {
+                            Text(
+                                text = "Nuevo Evento",
+                                fontSize = 16.sp,
+                                lineHeight = 16.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+        ) { innerPadding ->
+            Box( //forma la barra superior que contiene el logo y nombre de la aplicacion
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
                 Column( //contine y organiza los elementos que se visualizaran
                     modifier = Modifier
                         .fillMaxSize()

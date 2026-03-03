@@ -1,5 +1,6 @@
 package com.example.eventcoord.ui.screens.home
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -20,31 +21,15 @@ import com.example.eventcoord.ui.components.LoadingOverlay
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
-import com.example.eventcoord.data.model.Administrador
-import com.google.firebase.Firebase
+import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.firestore
+import androidx.core.content.edit
 
-fun probarConexionFirestore() {
-    val db = Firebase.firestore
-    db.collection("administradores")
-        .get()
-        .addOnSuccessListener { resultado ->
-            for (documento in resultado) {
-                Log.d("FIREBASE_TEST", "Documento ID: ${documento.id} => Datos: ${documento.data}")
-                val admin = documento.toObject(Administrador::class.java)
-                Log.d("FIREBASE_TEST", "¡Hola desde la nube, ${admin.nombre}!")
-            }
-        }
-        .addOnFailureListener { error ->
-            Log.e("FIREBASE_TEST", "Error al conectar: ", error)
-        }
-}
 @Composable
 fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     // LEER DATOS DE FIREBASE
@@ -58,9 +43,14 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var phone by remember { mutableStateOf("Cargando...")} // Telefono guardado
     //  VARIABLES DE ESTADO
     var isLoading by remember { mutableStateOf(false) } // Controla si se ve la carga
-    var notificacionesActivadas by remember { mutableStateOf(true) }
-    var modoOscuro by remember { mutableStateOf(false) }
     var actualSection by remember { mutableStateOf("Perfil") } // Controla que se muestra (Perfil/Configuracion)
+    var expanded by remember { mutableStateOf(false) } // Menú de temas
+    val themeOptions = listOf("Modo claro", "Modo oscuro", "Igual que el sistema") // Lista de temas
+    val context = LocalContext.current
+    val sharedPrefs = remember { context.getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE) }
+    var selectedTheme by remember {
+        mutableStateOf(sharedPrefs.getString("tema_app", "Igual que el sistema") ?: "Igual que el sistema")
+    }
     LaunchedEffect(Unit) {
         currentUser?.uid?.let { uid ->
             db.collection("administradores").document(uid).get()
@@ -100,7 +90,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         Icon(
                             imageVector = Icons.Default.ArrowBackIosNew,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
@@ -108,12 +98,12 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         text = if (actualSection == "Perfil") "Mi Perfil" else "Mi Configuración",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             },
             bottomBar= {
-                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black), shape = androidx.compose.ui.graphics.RectangleShape) {
+                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = androidx.compose.ui.graphics.RectangleShape) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
@@ -126,7 +116,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 text = "Perfil",
                                 fontSize = 16.sp,
                                 textAlign = TextAlign.Center,
-                                color = if(actualSection == "Perfil") Color.White else Color.Gray
+                                color = if(actualSection == "Perfil") MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray
                             )
                         }
                         Spacer(modifier= Modifier.width(8.dp))
@@ -182,8 +172,8 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                     color = Color.Gray
                                 )
                                 Text(
-                                    text = fullName, // Tu variable de Firebase
-                                    style = MaterialTheme.typography.bodyLarge, // Letra normal/grande
+                                    text = fullName,
+                                    style = MaterialTheme.typography.bodyLarge,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
@@ -193,7 +183,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                     color = Color.Gray
                                 )
                                 Text(
-                                    text = email, // Tu variable de Firebase
+                                    text = email,
                                     style = MaterialTheme.typography.bodyLarge,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
@@ -204,7 +194,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                     color = Color.Gray
                                 )
                                 Text(
-                                    text = phone, // Tu variable de Firebase
+                                    text = phone,
                                     style = MaterialTheme.typography.bodyLarge,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
@@ -212,7 +202,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         }
                         Spacer(modifier= Modifier.width(8.dp))
                         TextButton(
-                            onClick = {probarConexionFirestore()}
+                            onClick = {}
                         ) {
                             Text(
                                 text = "Editar Perfil",
@@ -225,47 +215,46 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         Text(
                             "General",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 12.dp),
+                                .clickable { expanded = true }
+                                .padding(vertical = 12.dp, horizontal = 16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text("Notificaciones", style = MaterialTheme.typography.bodyLarge)
+                                Text("Tema de la aplicación", style = MaterialTheme.typography.bodyLarge)
                                 Text(
-                                    "Recibir alertas de clases y tareas",
+                                    selectedTheme,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.Gray
                                 )
                             }
-                            Switch(
-                                checked = notificacionesActivadas,
-                                onCheckedChange = { notificacionesActivadas = it }
-                            )
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text("Modo Oscuro", style = MaterialTheme.typography.bodyLarge)
-                                Text(
-                                    "Cambiar apariencia de la app",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
+                            Box{
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Seleccionar tema",
+                                    tint = Color.Gray
                                 )
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    themeOptions.forEach { option->
+                                        DropdownMenuItem(
+                                            text = { Text(option) },
+                                            onClick = {
+                                                selectedTheme = option
+                                                expanded = false
+                                                sharedPrefs.edit { putString("tema_app", option) }
+                                            }
+                                        )
+                                    }
+                                }
                             }
-                            Switch(
-                                checked = modoOscuro,
-                                onCheckedChange = { modoOscuro = it }
-                            )
                         }
                         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                         Text(

@@ -25,17 +25,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.eventcoord.R
 import com.example.eventcoord.ui.components.LoadingOverlay
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun RegistrationScreen(onBackClick: () -> Unit) {
+    // VARIABLES DE ESTADO
     val logogris = painterResource(R.drawable.eventcoord_logo_gris) // Imagen de Logo
-    val testNotification = remember { mutableStateOf(false)}
-    val notificationProblem = remember { mutableStateOf(false)}
+    var isLoading by remember { mutableStateOf(false)} // Controla si se ve la carga
     val scrollState = rememberScrollState() // Permite el mover el contenido de la pantalla
-    val scope = rememberCoroutineScope() // Ejecuta la espera de tiempo
-    var isLoading by remember { mutableStateOf(false) } // Controla si se ve la carga
+    var hide by remember { mutableStateOf(true)}
+    var isError by remember { mutableStateOf(false) }
+    // NOTIFICACIONES
+    val testNotification = remember { mutableStateOf(false)} // Exito con el registro
+    val notificationProblem = remember { mutableStateOf(false)} // Problema con el registro
+    val notificationCampos = remember { mutableStateOf(false)} // Campos incompletos
+    val notificationPass = remember { mutableStateOf(false)} // Contraseñas no coinciden
+    val notificationPassLar = remember { mutableStateOf(false)} // Contraseñas muy corta (menor que 8 caracteres)
+    // VARIABLES DE USUARIO
     var adminName by remember { mutableStateOf("")} // Variable para guardar el nombre de administrador
     var adminApPat by remember { mutableStateOf("")} // Varibale para guardar el apellido paterno del administrador
     var adminApMat by remember { mutableStateOf("")} // Variable para guardar el apellido materno del administrador
@@ -43,7 +50,6 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
     var phoneNumber by remember { mutableStateOf("")} // Variable para guardar el numero de telefono
     var password by remember { mutableStateOf("")} // Varibale para guardar la contraseña
     var passwordConf by remember { mutableStateOf("")} // Varibale para guardar y confirmar la contraseña
-    var hide by remember { mutableStateOf(true)}
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
             Column(// Apilamos para organizar los elementos de forma vertical
@@ -162,7 +168,8 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         disabledContainerColor = Color.Transparent,
-                    )
+                    ),
+                    isError = isError
                 )
                 Spacer(modifier = Modifier.height(16.dp)) // Espacios para una mejor presentacion
                 TextField(
@@ -184,21 +191,72 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         disabledContainerColor = Color.Transparent,
-                    )
+                    ),
+                    isError = isError
                 )
                 Spacer(modifier = Modifier.height(16.dp)) // Espacios para una mejor presentacion
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(vertical = 8.dp)
                 ){
-                    Button( // Botón para Registrar
+                    Button(
                         onClick = {
-                            scope.launch {
-                                isLoading = true // Activa la carga
-                                delay(2000) // Espera 2 segundos
-                                isLoading = false // Desactica la carga
-                                testNotification.value = true //Activa la notificacion
+                            isLoading = true // Activa la carga
+                            val camposLlenos = adminName.isNotEmpty() && adminApPat.isNotEmpty() && adminApMat.isNotEmpty() && email.isNotEmpty() && phoneNumber.isNotEmpty() && password.isNotEmpty() && passwordConf.isNotEmpty()
+                            // Validación 1: Campos vacíos
+                            if (!camposLlenos) {
+                                isError = true
+                                notificationCampos.value = true
+                                isLoading = false
+                                return@Button // Detiene la ejecución
                             }
+                            // Validación 2: Contraseñas no coinciden
+                            if (password != passwordConf) {
+                                isError = true
+                                notificationPass.value = true
+                                isLoading = false
+                                return@Button
+                            }
+                            // Validación 3: Contraseña muy corta
+                            if (password.length < 8) {
+                                isError = true
+                                notificationPassLar.value = true
+                                isLoading = false
+                                return@Button
+                            }
+                            // Todo correcto
+                            val auth = FirebaseAuth.getInstance()
+                            val db = FirebaseFirestore.getInstance()
+                            auth.createUserWithEmailAndPassword(email, password)
+                                .addOnSuccessListener { authResult ->
+                                    val uid = authResult.user?.uid ?: ""
+                                    val dataUser = hashMapOf(
+                                        "id" to uid,
+                                        "nombre" to adminName,
+                                        "apPat" to adminApPat,
+                                        "apMat" to adminApMat,
+                                        "correo" to email,
+                                        "telefono" to phoneNumber
+                                    )
+                                    db.collection("administradores").document(uid).set(dataUser)
+                                        .addOnSuccessListener {
+                                            isError = false
+                                            testNotification.value = true
+                                            isLoading = false
+                                        }
+                                        .addOnFailureListener { e ->
+                                            isError = true
+                                            notificationProblem.value = true
+                                            println("Error al guardar en Firestore: ${e.message}")
+                                            isLoading = false
+                                        }
+                                }
+                                .addOnFailureListener { exception ->
+                                    isError = true
+                                    notificationProblem.value = true
+                                    println("Error en Auth: ${exception.message}")
+                                    isLoading = false
+                                }
                         },
                         modifier = Modifier.padding(8.dp),
                         enabled = !isLoading
@@ -226,10 +284,10 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
                             onBackClick()
                         },
                         title = {
-                            Text(text = "Prueba")
+                            Text(text = "Registro exitoso")
                         },
                         text = {
-                            Text(text = "Prueba de navegacion exitosa")
+                            Text(text = "Usuario Registrado con exito")
                         },
                         confirmButton = {
                             Button(
@@ -237,7 +295,7 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
                                     onBackClick()
                                 }
                             ) {
-                                Text("Inicio de sesion")
+                                Text("Iniciar sesion")
                             }
                         }
                     )
@@ -260,6 +318,72 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
                                 }
                             ) {
                                 Text("Aceptar")
+                            }
+                        }
+                    )
+                }
+                if(notificationCampos.value) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            notificationCampos.value = false
+                        },
+                        title = {
+                            Text(text = "Problemas al registrar")
+                        },
+                        text = {
+                            Text(text = "Por favor asegurese de llenar todos los campos")
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    notificationCampos.value = false
+                                }
+                            ) {
+                                Text("Ok")
+                            }
+                        }
+                    )
+                }
+                if(notificationPass.value) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            notificationPass.value = false
+                        },
+                        title = {
+                            Text(text = "Problemas al registrar")
+                        },
+                        text = {
+                            Text(text = "Las contraseñas no coinciden, por favor intentelo de nuevo")
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    notificationPass.value = false
+                                }
+                            ) {
+                                Text("Ok")
+                            }
+                        }
+                    )
+                }
+                if(notificationPassLar.value) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            notificationPassLar.value = false
+                        },
+                        title = {
+                            Text(text = "Problemas al registrar")
+                        },
+                        text = {
+                            Text(text = "La contraseña es muy corta, por favor asegurese que tenga minimo 8 caracteres")
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    notificationPassLar.value = false
+                                }
+                            ) {
+                                Text("Ok")
                             }
                         }
                     )

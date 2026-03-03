@@ -13,14 +13,22 @@ import com.example.eventcoord.ui.screens.home.ProfileScreen
 import com.example.eventcoord.ui.screens.login.LoginScreen
 import com.example.eventcoord.ui.screens.login.PasswordScreen
 import com.example.eventcoord.ui.screens.login.RegistrationScreen
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val auth = FirebaseAuth.getInstance() // Preguntamos si existe alguna sesion activa
+    val activeUser = auth.currentUser // Validamos la sesión
+    val initialRoute = if (activeUser != null) {
+        "home"
+    } else {
+        "login"
+    }
     // Definimos las rutas
     NavHost(
         navController = navController,
-        startDestination = "login",
+        startDestination = initialRoute,
         enterTransition = { // Animacion cuando entras a una pantalla
             slideIntoContainer( // Deslizamiento de la pantalla
                 towards = AnimatedContentTransitionScope.SlideDirection.Left, // Direccion de deslizamiento

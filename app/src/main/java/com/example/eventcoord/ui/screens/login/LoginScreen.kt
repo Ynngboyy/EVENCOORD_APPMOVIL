@@ -134,7 +134,11 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onForgotPassword: () -> Unit, onRegi
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading // Desactiva el boton si ya esta cargando
+                    enabled = !isLoading, // Desactiva el boton si ya esta cargando
+                            colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFC6A45C), // Tu color azul
+                    contentColor = Color(0xFF7A7F86),         // Color del texto "Iniciar Sesión"
+                    disabledContainerColor = Color(0xFFA8863B))
                 ) {
                     Text("Iniciar Sesión")
                 }

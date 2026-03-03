@@ -56,7 +56,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                 }
             },
             bottomBar= {
-                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black), shape = androidx.compose.ui.graphics.RectangleShape) {
+                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color(0xFFC6A45C)), shape = androidx.compose.ui.graphics.RectangleShape) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,

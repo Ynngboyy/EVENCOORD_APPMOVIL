@@ -25,7 +25,8 @@ import com.example.eventcoord.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Unit) {
-    val logogris = painterResource(R.drawable.eventcoord_logo_gris)
+    val logo = painterResource(R.drawable.eventcoord_logo_gris)
+  //  val presentacion = painterResource(R.drawable.eventcoord_logo_presentacion)
     var isVisible by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize()){
         Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background,
@@ -49,19 +50,19 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                             modifier = Modifier
                                 .size(150.dp)
                                 .clip(CircleShape)
-                                .border(4.dp, Color.White, CircleShape)
+                                .border(4.dp, color = Color(0xFFE0C27A), CircleShape)
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "MI CUENTA",
-                        color = Color.White,
+                        color = Color(0xFF7A7F86),
                         fontSize = 20.sp,
                         modifier = Modifier.padding(top = 20.dp)
                     )
                     Spacer(modifier = Modifier.width(100.dp))
                     Image(
-                        painter = logogris,
+                        painter = logo,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -72,7 +73,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                 }
             },
             bottomBar = {
-                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black), shape = androidx.compose.ui.graphics.RectangleShape) {
+                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black/*(0xFFC6A45C)*/), shape = androidx.compose.ui.graphics.RectangleShape) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
@@ -85,7 +86,8 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                                 text = "Nuevo Evento",
                                 fontSize = 16.sp,
                                 lineHeight = 16.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                color = Color(0xFF4A4F55)
                             )
                         }
                     }
@@ -108,6 +110,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                     Row{
                         Text(
                             text = "PROXIMOS EVENTOS"
+
                         )
                     }
                     Row{
@@ -118,10 +121,10 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                         )
                         val items = remember {// se declaran las imagenes que muestran en el carrusel
                             listOf(
-                                CarouselItem(0, R.drawable.eventcoord_logo_gris, "im"),
-                                CarouselItem(1, R.drawable.eventcoord_logo_gris, "ima"),
-                                CarouselItem(2, R.drawable.eventcoord_logo_gris, "imag"),
-                                CarouselItem(3, R.drawable.eventcoord_logo_gris, "image"), // CarouselItem(4, R.drawable.eventcoord_logo_gris, "imagen"),
+                                CarouselItem(0, R.drawable.eventcoord_logo_presentacion, "im"),
+                                CarouselItem(1, R.drawable.eventcoord_logo_presentacion, "ima"),
+                                CarouselItem(2, R.drawable.eventcoord_logo_presentacion, "imag"),
+                                CarouselItem(3, R.drawable.eventcoord_logo_presentacion, "image"), // CarouselItem(4, R.drawable.eventcoord_logo_gris, "imagen"),
                             )
                         }
                         HorizontalMultiBrowseCarousel( // se crea el carrusel de imagenes recuperadas de los valores ya declarados

@@ -99,7 +99,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                Column( //contine y organiza los elementos que se visualizaran
+                Column( //contiene y organiza los elementos que se visualizarán
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)

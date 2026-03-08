@@ -22,10 +22,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.core.content.edit
@@ -41,6 +44,11 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var fullName by remember { mutableStateOf("Cargando...")} // Nombre completo
     var email by remember { mutableStateOf("Cargando...")} // Correo guardado
     var phone by remember { mutableStateOf("Cargando...")} // Telefono guardado
+    // VARIBLES TEMPORALES PARA EDITAR DATOS DE USUARIO
+    var tempName by remember { mutableStateOf("") } // Varible temporal en caso de querer editar el nombre
+    var tempApPat by remember { mutableStateOf("") }
+    var tempApMat by remember { mutableStateOf("") }
+    var tempPhone by remember { mutableStateOf("") }
     //  VARIABLES DE ESTADO
     var isLoading by remember { mutableStateOf(false) } // Controla si se ve la carga
     var actualSection by remember { mutableStateOf("Perfil") } // Controla que se muestra (Perfil/Configuracion)
@@ -51,6 +59,9 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var selectedTheme by remember {
         mutableStateOf(sharedPrefs.getString("tema_app", "Igual que el sistema") ?: "Igual que el sistema")
     }
+    var isEditing by remember { mutableStateOf(false) } // Variable para saber si esta editando información
+    // Notificaciones
+    val notificationErrEd = remember { mutableStateOf(false) } // Notificacion de error al actualizar
     LaunchedEffect(Unit) {
         currentUser?.uid?.let { uid ->
             db.collection("administradores").document(uid).get()
@@ -63,6 +74,11 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         fullName = "$nombre $apPat $apMat" // Juntamos el nombre comleto
                         email = document.getString("correo") ?: "" // Obtenemos el correo
                         phone = document.getString("telefono") ?: "" // Obtenemos el telefono
+
+                        tempName = nombre
+                        tempApPat = apPat
+                        tempApMat = apMat
+                        tempPhone = phone
                     } else {
                         fullName = "Usuario no encontrado"
                     }
@@ -171,11 +187,61 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color.Gray
                                 )
-                                Text(
-                                    text = fullName,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(top = 2.dp)
-                                )
+                                if (isEditing) {
+                                    TextField(
+                                        value = tempName,
+                                        onValueChange = {
+                                            tempName = it
+                                        }, // Actualiza la variable cuando el usuario escribe
+                                        label = { Text("Nombre(s)") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                        singleLine = true,
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent,
+                                            disabledContainerColor = Color.Transparent,
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    TextField(
+                                        value = tempApPat,
+                                        onValueChange = {
+                                            tempApPat = it
+                                        }, // Actualiza la variable cuando el usuario escribe
+                                        label = { Text("Apellido Paterno") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                        singleLine = true,
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent,
+                                            disabledContainerColor = Color.Transparent,
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    TextField(
+                                        value = tempApMat,
+                                        onValueChange = {
+                                            tempApMat = it
+                                        }, // Actualiza la variable cuando el usuario escribe
+                                        label = { Text("Apellido Materno") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                                        singleLine = true,
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent,
+                                            disabledContainerColor = Color.Transparent,
+                                        )
+                                    )
+                                } else {
+                                    Text(
+                                        text = fullName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                                 Text(
                                     text = "Correo electrónico",
@@ -193,22 +259,86 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color.Gray
                                 )
-                                Text(
-                                    text = phone,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(top = 2.dp)
-                                )
+                                if (isEditing) {
+                                    TextField(
+                                        value = tempPhone,
+                                        onValueChange = {
+                                            tempPhone = it
+                                        }, // Actualiza la variable cuando el usuario escribe
+                                        label = { Text("Numero Telefonico") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Phone,
+                                            imeAction = ImeAction.Done
+                                        ),
+                                        singleLine = true,
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent,
+                                            disabledContainerColor = Color.Transparent,
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                } else {
+                                    Text(
+                                        text = phone,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
                             }
                         }
-                        Spacer(modifier= Modifier.width(8.dp))
-                        TextButton(
-                            onClick = {}
-                        ) {
-                            Text(
-                                text = "Editar Perfil",
-                                fontSize = 16.sp,
-                                textAlign = TextAlign.Center,
-                            )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                            if (isEditing) {
+                                TextButton(onClick = {
+                                    val parts = fullName.split(" ")
+                                    tempName = parts.getOrNull(0) ?: ""
+                                    tempApPat = parts.getOrNull(1) ?: ""
+                                    tempApMat = parts.getOrNull(2) ?: ""
+                                    tempPhone = phone
+
+                                    isEditing = false
+                                }) {
+                                    Text("Cancelar", color = Color.Gray)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            TextButton(
+                                onClick = {
+                                    if (isEditing) {
+                                        val uid = auth.currentUser?.uid ?: return@TextButton
+                                        isLoading = true
+                                        val updates = hashMapOf<String, Any>(
+                                            "nombre" to tempName,
+                                            "apPat" to tempApPat,
+                                            "apMat" to tempApMat,
+                                            "telefono" to tempPhone
+                                        )
+                                        db.collection("administradores").document(uid)
+                                            .update(updates)
+                                            .addOnSuccessListener {
+                                                fullName = "$tempName $tempApPat $tempApMat"
+                                                phone = tempPhone
+                                                isLoading = false
+                                                isEditing = false
+                                            }
+                                            .addOnFailureListener { e ->
+                                                isLoading = false
+                                                notificationErrEd.value = true
+                                                println("Error al actualizar perfil estudiante: ${e.message}")
+                                            }
+                                    } else {
+                                        isEditing = true
+                                    }
+                                }
+                            ) {
+                                Text(
+                                    text = if (isEditing) "Guardar Cambios" else "Editar perfil",
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                     "Configuracion" -> {
@@ -312,5 +442,27 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
             }
         }
         LoadingOverlay(isLoading = isLoading) // Coloca el Overlay por encima de lo demas
+        if(notificationErrEd.value) {
+            AlertDialog(
+                onDismissRequest = {
+                    notificationErrEd.value = false
+                },
+                title = {
+                    Text(text = "Error")
+                },
+                text = {
+                    Text(text = "Ocurrio un error al actualizar los datos del perfil")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            notificationErrEd.value = false
+                        }
+                    ) {
+                        Text("Aceptar")
+                    }
+                }
+            )
+        }
     }
 }

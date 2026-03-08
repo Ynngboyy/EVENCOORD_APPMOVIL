@@ -50,7 +50,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                             modifier = Modifier
                                 .size(150.dp)
                                 .clip(CircleShape)
-                                .border(4.dp, color = Color(0xFFE0C27A), CircleShape)
+                                .border(4.dp, color = Color(0xFF243F63), CircleShape)
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
@@ -105,7 +105,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                         .padding(innerPadding)
                         .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceEvenly
+                    verticalArrangement = Arrangement.Top
                 ) {
                     Row{
                         Text(

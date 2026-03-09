@@ -32,6 +32,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.core.content.edit
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.eventcoord.ui.uriToBase64
+import com.example.eventcoord.ui.base64ToImageBitmap
 
 @Composable
 fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
@@ -44,6 +49,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var fullName by remember { mutableStateOf("Cargando...")} // Nombre completo
     var email by remember { mutableStateOf("Cargando...")} // Correo guardado
     var phone by remember { mutableStateOf("Cargando...")} // Telefono guardado
+    var profileImageBase64 by remember { mutableStateOf("") } // texto de la foto
     // VARIBLES TEMPORALES PARA EDITAR DATOS DE USUARIO
     var tempName by remember { mutableStateOf("") } // Varible temporal en caso de querer editar el nombre
     var tempApPat by remember { mutableStateOf("") }
@@ -62,6 +68,31 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var isEditing by remember { mutableStateOf(false) } // Variable para saber si esta editando información
     // Notificaciones
     val notificationErrEd = remember { mutableStateOf(false) } // Notificacion de error al actualizar
+    // LANZADOR PARA ABRIR LA GALERIA DEL TELEFONO
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                isLoading = true
+                val base64String = uriToBase64(context, uri)
+                if (base64String != null) {
+                    val uid = auth.currentUser?.uid ?: return@rememberLauncherForActivityResult
+                    db.collection("administradores").document(uid)
+                        .update("fotoPerfil", base64String)
+                        .addOnSuccessListener {
+                            profileImageBase64 = base64String
+                            isLoading = false
+                        }
+                        .addOnFailureListener {
+                            isLoading = false
+                            notificationErrEd.value = true
+                        }
+                } else {
+                    isLoading = false
+                }
+            }
+        }
+    )
     LaunchedEffect(Unit) {
         currentUser?.uid?.let { uid ->
             db.collection("administradores").document(uid).get()
@@ -70,6 +101,8 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         val nombre = document.getString("nombre") ?: "" // Obtenemos nombre
                         val apPat = document.getString("apPat") ?: "" // Obtenemos apellido paterno
                         val apMat = document.getString("apMat") ?: "" // Obtenemos apellido materno
+                        val fotoGuardada = document.getString("fotoPerfil") ?: "" // Obtenemos el texto de la imagen
+                        profileImageBase64 = fotoGuardada
 
                         fullName = "$nombre $apPat $apMat" // Juntamos el nombre comleto
                         email = document.getString("correo") ?: "" // Obtenemos el correo
@@ -161,15 +194,33 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                 Spacer(modifier = Modifier.height(32.dp))
                 when (actualSection) {
                     "Perfil" -> {
-                        Image(
-                            painter = usuario,
-                            contentDescription = "Foto de usuario",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
-                                .border(4.dp, Color.White, CircleShape)
-                        )
+                        Box(
+                            modifier = Modifier.clickable {
+                                photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            }
+                        ) {
+                            if (profileImageBase64.isNotEmpty() && base64ToImageBitmap(profileImageBase64) != null) {
+                                Image(
+                                    bitmap = base64ToImageBitmap(profileImageBase64)!!,
+                                    contentDescription = "Foto de usuario real",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape)
+                                        .border(4.dp, Color.White, CircleShape)
+                                )
+                            } else {
+                                Image(
+                                    painter = usuario,
+                                    contentDescription = "Foto de usuario",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape)
+                                        .border(4.dp, Color.White, CircleShape)
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(24.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),

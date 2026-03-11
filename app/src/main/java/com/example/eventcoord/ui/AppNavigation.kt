@@ -3,9 +3,11 @@ package com.example.eventcoord.ui
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.eventcoord.ui.screens.home.EventScreen
 import com.example.eventcoord.ui.screens.home.HomeScreen
 import com.example.eventcoord.ui.screens.home.NewEventScreen
@@ -65,7 +67,7 @@ fun AppNavigation() {
         // Ruta 2: Home
         composable("home") {
             HomeScreen(
-                onEvent = { navController.navigate("event") },
+                onEvent = { id -> navController.navigate("event/$id") },
                 onNewevent = {navController.navigate("newevent")},
                 onProfile = {navController.navigate("profile")}
             )
@@ -83,9 +85,14 @@ fun AppNavigation() {
             )
         }
         // Ruta 5: Event
-        composable  ("event"){
+        composable  (route = "event/{eventoId}", // El nombre entre llaves es el parámetro
+            arguments = listOf(
+                navArgument("eventoId") { type = NavType.StringType }
+            )){backStackEntry ->
+            val id = backStackEntry.arguments?.getString("eventoId") ?: ""
             EventScreen(
-                onBackClick = {navController.popBackStack()}
+                eventoId = id,
+                onBackClick = { navController.popBackStack() }
             )
         }
         // Ruta 6: NewEvent

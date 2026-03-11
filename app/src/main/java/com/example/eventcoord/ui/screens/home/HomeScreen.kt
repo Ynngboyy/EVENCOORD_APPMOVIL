@@ -20,14 +20,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.eventcoord.R
+import com.example.eventcoord.ui.viewmodels.EventosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Unit) {
+fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () -> Unit,viewModel: EventosViewModel = viewModel()) {
     val logo = painterResource(R.drawable.eventcoord_logo_gris)
+    LaunchedEffect(Unit) {
+        viewModel.cargarEventos()
+    }
   //  val presentacion = painterResource(R.drawable.eventcoord_logo_presentacion)
-    var isVisible by remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize()){
         Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background,
             topBar = {
@@ -127,8 +132,9 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                                 CarouselItem(3, R.drawable.eventcoord_logo_presentacion, "image"), // CarouselItem(4, R.drawable.eventcoord_logo_gris, "imagen"),
                             )
                         }
+
                         HorizontalMultiBrowseCarousel( // se crea el carrusel de imagenes recuperadas de los valores ya declarados
-                            state = rememberCarouselState { items.count() },
+                            state = rememberCarouselState { viewModel.listaEventos.count() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .wrapContentHeight()
@@ -136,21 +142,23 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                             preferredItemWidth = 186.dp,
                             itemSpacing = 8.dp,
                             contentPadding = PaddingValues(horizontal = 16.dp)
-                        ) { i ->
-                            val item = items[i]
+                        ) { index ->
+                            val eventoReal = viewModel.listaEventos[index] // Obtiene el evento de Firebase
                             Image(
                                 modifier = Modifier
-                                    .clickable( onClick = onEvent)//habilita la funcion de dar click y redirigirnos a la pestaña de eventos
+                                    .clickable { onEvent(eventoReal.id) } // Ahora sí pasas un ID real
                                     .height(205.dp)
                                     .maskClip(MaterialTheme.shapes.extraLarge),
-                                painter = painterResource(id = item.imageResId),
-                                contentDescription = item.contentDescription,
+                                painter = painterResource(id = R.drawable.eventcoord_logo_presentacion), // O una imagen del evento
+                                contentDescription = eventoReal.titulo,
                                 contentScale = ContentScale.Crop
                             )
+
                         }
                     }
                 }
             }
         }
     }
+
 }

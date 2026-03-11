@@ -50,6 +50,11 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0") // Opcional para permisos
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)

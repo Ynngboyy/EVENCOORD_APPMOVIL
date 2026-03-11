@@ -1,5 +1,6 @@
 package com.example.eventcoord.ui.screens.home
 
+import android.R.attr.enabled
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,6 +31,15 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.CheckboxDefaults.colors
+import com.example.eventcoord.data.model.Actividad
+import com.example.eventcoord.data.model.Evento
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
 
 @Composable
 fun NewEventScreen(onBackClick: () -> Unit) {
@@ -66,9 +76,7 @@ fun NewEventScreen(onBackClick: () -> Unit) {
                     )
                 }
             },
-            bottomBar = {
-                MenuBoton()
-            }
+
         ) { innerPadding ->
             Column(
                 modifier = Modifier
@@ -148,7 +156,7 @@ fun Plantillas(text: String, containerColor: Color, contentColor: Color, onClick
 fun XVseccion(){
     Nuevo(
         tipoEventoInicial = "XV Años",
-        notasIniciales = "1. Recepción\n2. Vals Principal\n3. Brindis",
+        notasIniciales = "codigo de vestimenta formal-casual",
         containerColor = Color(0xFFF4F1EA),
         contentColor = Color(0xFF4A4F55)
     )
@@ -158,7 +166,7 @@ fun XVseccion(){
 fun BodaSeccion(){
     Nuevo(
         tipoEventoInicial = "Boda",
-        notasIniciales = "1. Ceremonia\n2. Banquete\n3. Fiesta",
+        notasIniciales = "codigo de vestimenta nadie usa el color blanco",
         containerColor = Color(0xFFF4F1EA),
         contentColor = Color(0xFF4A4F55)
     )
@@ -168,11 +176,17 @@ fun BodaSeccion(){
 fun GraduacionSeccion(){
     Nuevo(
         tipoEventoInicial = "Graduacion",
-        notasIniciales = "1. Ceremonia\n2. Banquete\n3. Grupo musical",
+        notasIniciales = "codigo de vestimenta colores azul y negro",
         containerColor = Color(0xFFF4F1EA),
         contentColor = Color(0xFF4A4F55)
     )
 }
+
+
+
+/* compartir evento dirigido a la pagina*/
+
+
 
 @Composable
 fun Nuevo(
@@ -186,18 +200,22 @@ fun Nuevo(
     var fecha by remember { mutableStateOf("") }
     var ubicacion by remember { mutableStateOf("") }
     var notas by remember { mutableStateOf(notasIniciales) }
+    var anfitrion by remember { mutableStateOf("") }
+
+
 
     val scrollState = rememberScrollState()//desplazamiento
 
-    val actividadesEjemplo = listOf( //ejemplo de programa que se obtendra al llenar datos
-        Actividad("18:00", "Recepción", "Bienvenida de invitados.", true),
-        Actividad("19:30", "Protocolo Principal", "Vals o Brindis."),
-        Actividad("21:00", "Cena", "Servicio de banquete."),
-        Actividad("22:30", "Baile", "Apertura de pista.")
-    )
+    var esImportante by remember { mutableStateOf(false) }
+    var nuevaHora by remember { mutableStateOf("") }
+    var nuevoTitulo by remember { mutableStateOf("") }
+    val actividades = remember {
+        mutableStateListOf<Actividad>()
+    }
+
 
     Card(
-        modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp), // Limitamos la altura para que no tape todo
+        modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp), // Limitamos la altura
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
@@ -219,13 +237,19 @@ fun Nuevo(
                 label = { Text("Nombre del evento") },
                 modifier = Modifier.fillMaxWidth()
             )
-
+            // Campo: tipo
             OutlinedTextField(
                 value = tipoEvento,
                 onValueChange = { tipoEvento = it },
                 label = { Text("Tipo de Evento") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = tipoEventoInicial.isEmpty() // Si viene de plantilla, lo bloqueamos
+            )
+            OutlinedTextField(
+                value = anfitrion,
+                onValueChange = { anfitrion = it },
+                label = { Text("Anfitriones") },
+                modifier = Modifier.fillMaxWidth()
             )
             // Campo: Fecha
             OutlinedTextField(
@@ -252,29 +276,121 @@ fun Nuevo(
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Programa Sugerido",
+                text = "Programa",
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF4A4F55),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
             )
 
-            // se crea la linea del tiempo dentro del mismo scroll
-            actividadesEjemplo.forEachIndexed { index, actividad ->
-                FilaDeActividad(
-                    actividad = actividad,
-                    esElUltimo = index == actividadesEjemplo.size - 1
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = nuevaHora,
+                    onValueChange = { nuevaHora = it },
+                    label = { Text("Hora") },
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = nuevoTitulo,
+                    onValueChange = { nuevoTitulo = it },
+                    label = { Text("Actividad") },
+                    modifier = Modifier.weight(2f)
                 )
             }
+                //BOTONES DE EDICION Y BLOQUEO QUE DEFINEN LA IMPORTANCIA
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(onClick = {
+                        if (nuevaHora.isNotBlank() && nuevoTitulo.isNotBlank()) {
+                            // AGREGAR A LA LISTA
+                            actividades.add(Actividad(nuevaHora, nuevoTitulo,"",esImportante = esImportante))
+                            nuevaHora = ""
+                            nuevoTitulo = ""
+                            esImportante = false
+                        }
+                    }) {
+                        Text("+")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("¿Es importante?")
+                    Checkbox(
+                        checked = esImportante,
+                        onCheckedChange = { esImportante = it }
+                    )
+                }
 
-            Button(onClick = { /* Lógica de Firebase aquí */ }) {
-                Text("Confirmar Evento")
+
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // generacion de linea del tiempo
+            Text("Vista Previa del Programa:", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (actividades.isEmpty()) {
+                Text("No hay actividades aún...", color = Color.Gray, fontSize = 12.sp)
+            } else {
+                // ordena la linea del tiempo por hora
+                val listaOrdenada = actividades.sortedBy { it.hora }
+
+                listaOrdenada.forEachIndexed { index, actividad ->
+
+                    FilaDeActividad(
+                        actividad = actividad,
+                        esElUltimo = index == listaOrdenada.size - 1 ,// Usar el tamaño de la ordenada
+                        onBorrar = { actividades.remove(actividad) }
+                    )
+                }
+            }
+
+            Button(
+                onClick = {
+                    if (nombre.isNotBlank()) {
+                        guardarNuevoEvento(
+                            titulo = nombre,        // Estado: nombre
+                            anfitrion = anfitrion,  // Estado: anfitrion
+                            descripcion = notas,    // Estado: notas
+                            fecha = fecha,          // Estado: fecha
+                            hora = nuevaHora.ifBlank { "00:00" },
+                            lugar = ubicacion,      // Estado: ubicacion
+                            programa = actividades.toList(),// Convertimos el estado a lista fija
+                            onSuccess = {
+                                // Limpiamos los campos o cerramos el formulario
+                                nombre = ""
+                                fecha = ""
+                                ubicacion = ""
+                                actividades.clear()
+                                println("Evento guardado correctamente")
+                            },
+                            onError = { error ->
+                                println("Error al guardar en Firebase: ${error.message}")
+                            }
+                        )
+                    }
+                },
+
+                modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2196F3),
+                        disabledContainerColor = Color.Gray
+                    ),
+                    enabled = nombre.isNotBlank() // Se deshabilita si no hay nombre
+                ) {
+                Text("Confirmar y Guardar Evento", color = Color.White)
             }
         }
     }
 }
 
 @Composable //elementos de la linea del tiempo
-fun FilaDeActividad(actividad: Actividad, esElUltimo: Boolean) {
+fun FilaDeActividad(actividad: Actividad, esElUltimo: Boolean,onBorrar: () -> Unit) {
+
     Row(
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
     ) {
@@ -283,34 +399,77 @@ fun FilaDeActividad(actividad: Actividad, esElUltimo: Boolean) {
             modifier = Modifier.width(30.dp)
         ) {
             Box(
-                modifier = Modifier.size(10.dp).background(
-                    color = if (actividad.esImportante) Color(0xFF2196F3) else Color.Gray,
-                    shape = CircleShape
-                )
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(
+                        color = if (actividad.esImportante) Color(0xFF2196F3) else Color.Gray,
+                        shape = CircleShape
+                    )
             )
             if (!esElUltimo) {
                 Box(
-                    modifier = Modifier.width(2.dp).fillMaxHeight().background(Color.LightGray)
+                    modifier = Modifier
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(Color.LightGray)
                 )
             }
         }
 
-        Column(modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)) {
+        // --- 2. COLUMNA DEL TEXTO (CENTRO) ---
+        Column(
+            modifier = Modifier
+                .padding(start = 8.dp, bottom = 16.dp)
+                .weight(1f) // Esto empuja al icono a la derecha
+        ) {
             Text(text = actividad.hora, fontSize = 11.sp, color = Color.Gray)
             Text(text = actividad.titulo, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(text = actividad.descripcion, fontSize = 13.sp, color = Color.DarkGray)
+        }
+
+        // 3. ICONO DE BORRAR (Queda solo a la derecha)
+        IconButton(
+            onClick = onBorrar,
+            modifier = Modifier.padding(start = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Borrar",
+                tint = Color.Red
+            )
         }
     }
 }
-data class Actividad(val hora: String, val titulo: String, val descripcion: String, val esImportante: Boolean = false)
 
+fun guardarNuevoEvento(titulo: String,anfitrion: String, descripcion: String, fecha: String, hora: String, lugar: String, programa: List<Actividad>, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
 
+    val creadorUid = auth.currentUser?.uid ?: return
+
+    val nuevoEventoRef = db.collection("eventos").document()
+
+    val evento = Evento(
+        id = nuevoEventoRef.id,
+        titulo = titulo,
+        anfitrion = anfitrion,
+        descripcion = descripcion,
+        fecha = fecha,
+        hora = hora,
+        lugar = lugar,
+        creadorId = creadorUid,
+        programa = programa // Se guarda la lista completa aquí
+    )
+
+    nuevoEventoRef.set(evento)
+        .addOnSuccessListener { onSuccess() }
+        .addOnFailureListener { excepcion -> onError(excepcion) }
+}
 
 @Composable
 fun MenuBoton(){
     Card(modifier = Modifier
         .fillMaxWidth()
-        .navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black/*(0xFFC6A45C)*/), shape = androidx.compose.ui.graphics.RectangleShape) {
+        .navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black/*(0xFF2196F3)*/), shape = androidx.compose.ui.graphics.RectangleShape) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
@@ -323,11 +482,11 @@ fun MenuBoton(){
                 onClick = {}
             ) {
                 Text(
-                    text = "Crear Evento",
+                    text = "Generar QR",
                     fontSize = 16.sp,
                     lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
-                    color = Color(0xFF4A4F55)
+                    color = Color(0xFF2196F3)
                 )
             }
         }

@@ -20,31 +20,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.eventcoord.R
-import com.example.eventcoord.ui.base64ToImageBitmap
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.eventcoord.ui.viewmodels.EventosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Unit) {
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
-    val currentUser = auth.currentUser
+fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () -> Unit,viewModel: EventosViewModel = viewModel()) {
     val logo = painterResource(R.drawable.eventcoord_logo_gris)
-    val usuario = painterResource(R.drawable.usuario) // La imagen por defecto
-    var profileImageBase64 by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
-        currentUser?.uid?.let { uid ->
-            db.collection("administradores").document(uid).get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()){
-                        profileImageBase64 = document.getString("fotoPerfil") ?: ""
-                    }
-                }
-                .addOnFailureListener {}
-        }
+        viewModel.cargarEventos()
     }
+  //  val presentacion = painterResource(R.drawable.eventcoord_logo_presentacion)
+
     Box(modifier = Modifier.fillMaxSize()){
         Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background,
             topBar = {
@@ -56,50 +44,41 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
+                    IconButton( //crea el boton para la configuracion del usuario
                         onClick = onProfile,
                         modifier = Modifier.size(70.dp).padding(8.dp)
                     ) {
-                        if (profileImageBase64.isNotEmpty() && base64ToImageBitmap(profileImageBase64) != null) {
-                            Image(
-                                bitmap = base64ToImageBitmap(profileImageBase64)!!,
-                                contentDescription = "Ir al perfil",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                            )
-                        } else {
-                            Image(
-                                painter = usuario,
-                                contentDescription = "Ir al perfil",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                            )
-                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.usuario),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(150.dp)
+                                .clip(CircleShape)
+                                .border(4.dp, color = Color(0xFF243F63), CircleShape)
+                        )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "MI CUENTA",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        color = Color(0xFF7A7F86),
                         fontSize = 20.sp,
+                        modifier = Modifier.padding(top = 20.dp)
                     )
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.width(100.dp))
                     Image(
                         painter = logo,
                         contentDescription = null,
-                        contentScale = ContentScale.Fit,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(60.dp)
+                            .width(100.dp)
+                            .height(100.dp)
+                            .padding(8.dp)
                     )
                 }
             },
             bottomBar = {
-                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = androidx.compose.ui.graphics.RectangleShape) {
+                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black/*(0xFFC6A45C)*/), shape = androidx.compose.ui.graphics.RectangleShape) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
@@ -113,7 +92,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                                 fontSize = 16.sp,
                                 lineHeight = 16.sp,
                                 textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color(0xFF4A4F55)
                             )
                         }
                     }
@@ -128,16 +107,15 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                 Column( //contiene y organiza los elementos que se visualizarán
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(innerPadding)
                         .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
                     Row{
                         Text(
-                            text = "PROXIMOS EVENTOS",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(vertical = 16.dp)
+                            text = "PROXIMOS EVENTOS"
+
                         )
                     }
                     Row{
@@ -154,8 +132,9 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                                 CarouselItem(3, R.drawable.eventcoord_logo_presentacion, "image"), // CarouselItem(4, R.drawable.eventcoord_logo_gris, "imagen"),
                             )
                         }
+
                         HorizontalMultiBrowseCarousel( // se crea el carrusel de imagenes recuperadas de los valores ya declarados
-                            state = rememberCarouselState { items.count() },
+                            state = rememberCarouselState { viewModel.listaEventos.count() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .wrapContentHeight()
@@ -163,21 +142,23 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                             preferredItemWidth = 186.dp,
                             itemSpacing = 8.dp,
                             contentPadding = PaddingValues(horizontal = 16.dp)
-                        ) { i ->
-                            val item = items[i]
+                        ) { index ->
+                            val eventoReal = viewModel.listaEventos[index] // Obtiene el evento de Firebase
                             Image(
                                 modifier = Modifier
-                                    .clickable( onClick = onEvent)//habilita la funcion de dar click y redirigirnos a la pestaña de eventos
+                                    .clickable { onEvent(eventoReal.id) } // Ahora sí pasas un ID real
                                     .height(205.dp)
                                     .maskClip(MaterialTheme.shapes.extraLarge),
-                                painter = painterResource(id = item.imageResId),
-                                contentDescription = item.contentDescription,
+                                painter = painterResource(id = R.drawable.eventcoord_logo_presentacion), // O una imagen del evento
+                                contentDescription = eventoReal.titulo,
                                 contentScale = ContentScale.Crop
                             )
+
                         }
                     }
                 }
             }
         }
     }
+
 }

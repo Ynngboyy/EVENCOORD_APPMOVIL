@@ -68,7 +68,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(CircleShape)
-                                    .border(2.dp, color = Color(0xFF243F63), CircleShape)
+                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                             )
                         } else {
                             Image(
@@ -78,17 +78,17 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(CircleShape)
-                                    .border(2.dp, color = Color(0xFF243F63), CircleShape)
+                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                             )
                         }
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "MI CUENTA",
-                        color = Color(0xFF7A7F86),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         fontSize = 20.sp,
                     )
-                    Spacer(modifier = Modifier.width(100.dp))
+                    Spacer(modifier = Modifier.weight(1f))
                     Image(
                         painter = logo,
                         contentDescription = null,
@@ -99,7 +99,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                 }
             },
             bottomBar = {
-                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = Color.Black/*(0xFFC6A45C)*/), shape = androidx.compose.ui.graphics.RectangleShape) {
+                Card(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = androidx.compose.ui.graphics.RectangleShape) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
@@ -113,7 +113,7 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                                 fontSize = 16.sp,
                                 lineHeight = 16.sp,
                                 textAlign = TextAlign.Center,
-                                color = Color(0xFF4A4F55)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -128,15 +128,16 @@ fun HomeScreen(onEvent: () -> Unit, onNewevent: () -> Unit, onProfile: () -> Uni
                 Column( //contiene y organiza los elementos que se visualizarán
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
                         .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
                     Row{
                         Text(
-                            text = "PROXIMOS EVENTOS"
-
+                            text = "PROXIMOS EVENTOS",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(vertical = 16.dp)
                         )
                     }
                     Row{

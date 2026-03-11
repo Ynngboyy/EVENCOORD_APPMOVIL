@@ -32,6 +32,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.core.content.edit
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.eventcoord.ui.uriToBase64
+import com.example.eventcoord.ui.base64ToImageBitmap
 
 @Composable
 fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
@@ -44,6 +49,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var fullName by remember { mutableStateOf("Cargando...")} // Nombre completo
     var email by remember { mutableStateOf("Cargando...")} // Correo guardado
     var phone by remember { mutableStateOf("Cargando...")} // Telefono guardado
+    var profileImageBase64 by remember { mutableStateOf("") } // texto de la foto
     // VARIBLES TEMPORALES PARA EDITAR DATOS DE USUARIO
     var tempName by remember { mutableStateOf("") } // Varible temporal en caso de querer editar el nombre
     var tempApPat by remember { mutableStateOf("") }
@@ -62,6 +68,31 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var isEditing by remember { mutableStateOf(false) } // Variable para saber si esta editando información
     // Notificaciones
     val notificationErrEd = remember { mutableStateOf(false) } // Notificacion de error al actualizar
+    // LANZADOR PARA ABRIR LA GALERIA DEL TELEFONO
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                isLoading = true
+                val base64String = uriToBase64(context, uri)
+                if (base64String != null) {
+                    val uid = auth.currentUser?.uid ?: return@rememberLauncherForActivityResult
+                    db.collection("administradores").document(uid)
+                        .update("fotoPerfil", base64String)
+                        .addOnSuccessListener {
+                            profileImageBase64 = base64String
+                            isLoading = false
+                        }
+                        .addOnFailureListener {
+                            isLoading = false
+                            notificationErrEd.value = true
+                        }
+                } else {
+                    isLoading = false
+                }
+            }
+        }
+    )
     LaunchedEffect(Unit) {
         currentUser?.uid?.let { uid ->
             db.collection("administradores").document(uid).get()
@@ -70,6 +101,8 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         val nombre = document.getString("nombre") ?: "" // Obtenemos nombre
                         val apPat = document.getString("apPat") ?: "" // Obtenemos apellido paterno
                         val apMat = document.getString("apMat") ?: "" // Obtenemos apellido materno
+                        val fotoGuardada = document.getString("fotoPerfil") ?: "" // Obtenemos el texto de la imagen
+                        profileImageBase64 = fotoGuardada
 
                         fullName = "$nombre $apPat $apMat" // Juntamos el nombre comleto
                         email = document.getString("correo") ?: "" // Obtenemos el correo
@@ -131,8 +164,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                             Text(
                                 text = "Perfil",
                                 fontSize = 16.sp,
-                                textAlign = TextAlign.Center,
-                                color = if(actualSection == "Perfil") MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray
+                                textAlign = TextAlign.Center,color = if(actualSection == "Perfil") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Spacer(modifier= Modifier.width(8.dp))
@@ -142,8 +174,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                             Text(
                                 text = "Configuración",
                                 fontSize = 16.sp,
-                                textAlign = TextAlign.Center,
-                                color = if(actualSection == "Configuracion") Color.White else Color.Gray
+                                textAlign = TextAlign.Center,color = if(actualSection == "Configuracion") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -161,19 +192,38 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                 Spacer(modifier = Modifier.height(32.dp))
                 when (actualSection) {
                     "Perfil" -> {
-                        Image(
-                            painter = usuario,
-                            contentDescription = "Foto de usuario",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
-                                .border(4.dp, Color.White, CircleShape)
-                        )
+                        Box(
+                            modifier = Modifier.clickable {
+                                photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            }
+                        ) {
+                            if (profileImageBase64.isNotEmpty() && base64ToImageBitmap(profileImageBase64) != null) {
+                                Image(
+                                    bitmap = base64ToImageBitmap(profileImageBase64)!!,
+                                    contentDescription = "Foto de usuario real",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape)
+                                        .border(4.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                )
+                            } else {
+                                Image(
+                                    painter = usuario,
+                                    contentDescription = "Foto de usuario",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape)
+                                        .border(4.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(24.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(4.dp)
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
@@ -185,7 +235,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 Text(
                                     text = "Nombre completo",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 if (isEditing) {
                                     TextField(
@@ -201,6 +251,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                             focusedContainerColor = Color.Transparent,
                                             unfocusedContainerColor = Color.Transparent,
                                             disabledContainerColor = Color.Transparent,
+                                            focusedIndicatorColor = MaterialTheme.colorScheme.primary
                                         )
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
@@ -217,6 +268,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                             focusedContainerColor = Color.Transparent,
                                             unfocusedContainerColor = Color.Transparent,
                                             disabledContainerColor = Color.Transparent,
+                                            focusedIndicatorColor = MaterialTheme.colorScheme.primary
                                         )
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
@@ -233,31 +285,34 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                             focusedContainerColor = Color.Transparent,
                                             unfocusedContainerColor = Color.Transparent,
                                             disabledContainerColor = Color.Transparent,
+                                            focusedIndicatorColor = MaterialTheme.colorScheme.primary
                                         )
                                     )
                                 } else {
                                     Text(
                                         text = fullName,
                                         style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.padding(top = 2.dp)
                                     )
                                 }
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
                                 Text(
                                     text = "Correo electrónico",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 Text(
                                     text = email,
                                     style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
                                 Text(
                                     text = "Teléfono",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 if (isEditing) {
                                     TextField(
@@ -276,6 +331,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                             focusedContainerColor = Color.Transparent,
                                             unfocusedContainerColor = Color.Transparent,
                                             disabledContainerColor = Color.Transparent,
+                                            focusedIndicatorColor = MaterialTheme.colorScheme.primary
                                         )
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
@@ -300,7 +356,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
 
                                     isEditing = false
                                 }) {
-                                    Text("Cancelar", color = Color.Gray)
+                                    Text("Cancelar", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
@@ -336,7 +392,8 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 Text(
                                     text = if (isEditing) "Guardar Cambios" else "Editar perfil",
                                     fontSize = 16.sp,
-                                    textAlign = TextAlign.Center
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -345,7 +402,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         Text(
                             "General",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Row(
                             modifier = Modifier
@@ -360,14 +417,14 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 Text(
                                     selectedTheme,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                 )
                             }
                             Box{
                                 Icon(
                                     imageVector = Icons.Default.ArrowDropDown,
                                     contentDescription = "Seleccionar tema",
-                                    tint = Color.Gray
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 DropdownMenu(
                                     expanded = expanded,
@@ -386,7 +443,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 }
                             }
                         }
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f))
                         Text(
                             "Cuenta",
                             style = MaterialTheme.typography.titleMedium,
@@ -399,9 +456,9 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 .padding(vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray)
+                            Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Cambiar Contraseña", style = MaterialTheme.typography.bodyLarge)
+                            Text("Cambiar Contraseña", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
                         }
                         Row(
                             modifier = Modifier
@@ -410,9 +467,9 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 .padding(vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray)
+                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Ayuda y Soporte", style = MaterialTheme.typography.bodyLarge)
+                            Text("Ayuda y Soporte", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
                         }
                         Spacer(modifier = Modifier.height(32.dp))
                         TextButton( // Botón para Cerrar Sesion
@@ -427,14 +484,14 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                                 fontSize = 16.sp,
                                 lineHeight = 16.sp,
                                 textAlign = TextAlign.Center,
-                                color = Color.Red
+                                color = MaterialTheme.colorScheme.error
                             )
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
                             text = "EventCoord v0.6.0",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.LightGray,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
                     }

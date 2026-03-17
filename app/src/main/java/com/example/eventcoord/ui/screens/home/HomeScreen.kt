@@ -1,6 +1,7 @@
 package com.example.eventcoord.ui.screens.home
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,13 +25,17 @@ import com.example.eventcoord.ui.viewmodels.EventosViewModel
 import com.example.eventcoord.ui.base64ToImageBitmap
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () -> Unit, viewModel: EventosViewModel = viewModel()) {
     val logo = painterResource(R.drawable.eventcoord_logo)
-
     val usuario = painterResource(R.drawable.usuario)
+    val presentacion = painterResource(R.drawable.eventcoord_logo_presentacion) // Imagen por defecto
 
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
@@ -136,37 +141,84 @@ fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () 
                         .fillMaxSize()
                         .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Top
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Row{
-                        Text(
-                            text = "PRÓXIMOS EVENTOS",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                    }
-                    Row{
+                    Text(
+                        text = "PRÓXIMOS EVENTOS",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(bottom = 24.dp) // Un poco más de aire
+                    )
+
+                    if (viewModel.listaEventos.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(205.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Aún no tienes eventos.\n¡Crea uno nuevo!",
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
                         HorizontalMultiBrowseCarousel(
                             state = rememberCarouselState { viewModel.listaEventos.count() },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .wrapContentHeight()
-                                .padding(top = 16.dp, bottom = 16.dp),
-                            preferredItemWidth = 186.dp,
-                            itemSpacing = 8.dp,
+                                .wrapContentHeight(),
+                            preferredItemWidth = 200.dp, // Ligeramente más anchas para que el texto quepa mejor
+                            itemSpacing = 12.dp,
                             contentPadding = PaddingValues(horizontal = 16.dp)
                         ) { index ->
                             val eventoReal = viewModel.listaEventos[index]
-                            Image(
+                            val bitmapPortada = eventoReal.portada.takeIf { it.isNotBlank() }?.let { base64ToImageBitmap(it) }
+
+                            Box(
                                 modifier = Modifier
                                     .clickable { onEvent(eventoReal.id) }
-                                    .height(205.dp)
-                                    .maskClip(MaterialTheme.shapes.extraLarge),
-                                painter = painterResource(id = R.drawable.eventcoord_logo_presentacion),
-                                contentDescription = eventoReal.titulo,
-                                contentScale = ContentScale.Crop
-                            )
+                                    .height(260.dp) // Hice la tarjeta un poco más alta para que luzca la foto
+                                    .maskClip(MaterialTheme.shapes.extraLarge)
+                            ) {
+                                // 1. LA FOTO DE FONDO
+                                if (bitmapPortada != null) {
+                                    Image(
+                                        bitmap = bitmapPortada,
+                                        contentDescription = eventoReal.titulo,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Image(
+                                        painter = presentacion,
+                                        contentDescription = eventoReal.titulo,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                // 2. EL DEGRADADO Y TÍTULO SOBREPUESTO (OVERLAY)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .align(Alignment.BottomCenter) // Se ancla abajo
+                                        .background(
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                                            )
+                                        )
+                                        .padding(top = 24.dp, bottom = 12.dp, start = 12.dp, end = 12.dp)
+                                ) {
+                                    Text(
+                                        text = eventoReal.titulo,
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 2, // Si el título es muy largo, usa 2 líneas
+                                        overflow = TextOverflow.Ellipsis // Y si no cabe, pone "..."
+                                    )
+                                }
+                            }
                         }
                     }
                 }

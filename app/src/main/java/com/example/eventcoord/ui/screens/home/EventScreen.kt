@@ -33,10 +33,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.ImageLoader
 import coil.compose.AsyncImage
 import com.example.eventcoord.data.model.Actividad
-import com.example.eventcoord.data.model.EventDetailViewModel
+import com.example.eventcoord.ui.viewmodels.EventDetailViewModel
 import com.example.eventcoord.data.model.Evento
 import com.example.eventcoord.ui.viewmodels.FotoItem
 import com.example.eventcoord.ui.viewmodels.GaleriaViewModel
@@ -46,6 +45,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap
+import androidx.compose.animation.Crossfade
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 @SuppressLint("UseKtx")
 fun generarCodigoQR(content: String): Bitmap? {
@@ -62,8 +65,8 @@ fun generarCodigoQR(content: String): Bitmap? {
         }
         bitmap
     } catch (e: Exception) {
-        null
-    }
+        println("Error: ${e.message}")
+    } as Bitmap?
 }
 
 @Composable
@@ -72,9 +75,7 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
     LaunchedEffect(eventoId) {
         viewModel.cargarEventoPorId(eventoId)
     }
-
     val eventoCargado = viewModel.eventoCargado
-
     if (eventoCargado == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -115,96 +116,101 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
                     .padding(innerPadding)
                     .padding(horizontal = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
             ) {
-                when (actualSection) {
-                    "Principal" -> {
-                        val scrollState = rememberScrollState()
-                        Column(
-                            modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = eventoCargado.titulo,
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                text = "Organizado por: ${eventoCargado.anfitrion}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            )
-                            Button(
-                                onClick = { actualSection = "AccesoQR" },
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ),
-                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                Crossfade(
+                    targetState = actualSection,
+                    label = "animacion_secciones"
+                ) { seccionActiva ->
+                    when (seccionActiva) {
+                        "Principal" -> {
+                            val scrollState = rememberScrollState()
+                            Column(
+                                modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(imageVector = Icons.Default.QrCode, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Generar Pase de Acceso", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            }
+                                Text(
+                                    text = eventoCargado.titulo,
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "Organizado por: ${eventoCargado.anfitrion}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    modifier = Modifier.padding(bottom = 16.dp)
+                                )
+                                Button(
+                                    onClick = { actualSection = "AccesoQR" },
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.QrCode, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Generar Pase de Acceso", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
 
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                elevation = CardDefaults.cardElevation(2.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    InfoRow(label = "📅 Fecha", value = eventoCargado.fecha)
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    InfoRow(label = "⏰ Hora", value = eventoCargado.hora)
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    InfoRow(label = "📍 Lugar", value = eventoCargado.lugar)
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(2.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        InfoRow(label = "📅 Fecha", value = eventoCargado.fecha)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        InfoRow(label = "⏰ Hora", value = eventoCargado.hora)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        InfoRow(label = "📍 Lugar", value = eventoCargado.lugar)
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text(
+                                    text = "Acerca del evento",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.align(Alignment.Start)
+                                )
+                                Text(
+                                    text = eventoCargado.descripcion.ifBlank { "Sin descripción adicional." },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                                    textAlign = TextAlign.Justify,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                MenuCard("Programa", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant) {
+                                    actualSection = "Programa"
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                MenuCard("Galería", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary) {
+                                    actualSection = "Galeria"
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                MenuCard("Fotos Guardadas", MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface) {
+                                    actualSection = "Favoritos"
                                 }
                             }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Text(
-                                text = "Acerca del evento",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.align(Alignment.Start)
-                            )
-                            Text(
-                                text = eventoCargado.descripcion.ifBlank { "Sin descripción adicional." },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                                textAlign = TextAlign.Justify,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            MenuCard("Programa", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant) {
-                                actualSection = "Programa"
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            MenuCard("Galería", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary) {
-                                actualSection = "Galeria"
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            MenuCard("Fotos Guardadas", MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface) {
-                                actualSection = "Favoritos"
-                            }
                         }
+                        "Descripcion" -> DescripcionSeccion(evento = eventoCargado)
+                        "Programa" -> ProgramaSeccion(actividades = eventoCargado.programa)
+                        "Galeria" -> GaleriaSeccion(eventoId = eventoCargado.id)
+                        "Favoritos" -> FavoritosSeccion(eventoId = eventoCargado.id)
+                        "AccesoQR" -> AccesoQR(eventoId = eventoCargado.id)
                     }
-                    "Descripcion" -> DescripcionSeccion(evento = eventoCargado)
-                    "Programa" -> ProgramaSeccion(actividades = eventoCargado.programa)
-                    "Galeria" -> GaleriaSeccion(eventoId = eventoCargado.id)
-                    "Favoritos" -> FavoritosSeccion(eventoId = eventoCargado.id)
-                    "AccesoQR" -> AccesoQR(eventoId = eventoCargado.id)
                 }
             }
         }
@@ -346,7 +352,7 @@ fun GaleriaSeccion(eventoId: String, vModel: GaleriaViewModel = viewModel()){
 fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: () -> Unit) {
     val offsetX = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
-    val urlLimpia = remember(foto.url) { foto.url.trim() }
+    val urlLimpia = remember(foto.urlImagen) { foto.urlImagen.trim() }
     Card(
         modifier = Modifier
             .fillMaxSize()
@@ -370,16 +376,19 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
                 )
             },
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(8.dp)
+        elevation = CardDefaults.cardElevation(8.dp),
+        // Fondo negro para que los huecos de la imagen se vean elegantes
+        colors = CardDefaults.cardColors(containerColor = Color.Black)
     ) {
-        val context = LocalContext.current
-        val imageLoader = remember { ImageLoader.Builder(context).crossfade(true).build() }
         AsyncImage(
-            model = urlLimpia,
-            imageLoader = imageLoader,
+            model = coil.request.ImageRequest.Builder(LocalContext.current)
+                .data(urlLimpia)
+                .crossfade(true)
+                .build(),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
+            // Fit en vez de Crop para ver la foto entera
+            contentScale = ContentScale.Fit,
             onError = { error -> println("ERROR_COIL: ${error.result.throwable.message}") }
         )
     }
@@ -389,6 +398,8 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
 fun FavoritosSeccion(eventoId: String, vModel: GaleriaViewModel = viewModel()) {
     val listaFavoritos by vModel.favoritos.collectAsState()
     LaunchedEffect(eventoId) { vModel.cargarFavoritos(eventoId) }
+    // Controla qué foto está abierta en grande
+    var fotoSeleccionada by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Card(
@@ -409,12 +420,23 @@ fun FavoritosSeccion(eventoId: String, vModel: GaleriaViewModel = viewModel()) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(listaFavoritos) { foto ->
-                    Card(modifier = Modifier.aspectRatio(1f), shape = RoundedCornerShape(12.dp)) {
-                        AsyncImage(model = foto.url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    Card(
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            // Al hacer clic, guardamos la URL para abrirla en grande
+                            .clickable { fotoSeleccionada = foto.urlImagen },
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        // Aquí dejamos Crop para que la cuadrícula se vea ordenada
+                        AsyncImage(model = foto.urlImagen, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     }
                 }
             }
         }
+    }
+    // Si hay una foto seleccionada, mostramos el Visor de Pantalla Completa
+    fotoSeleccionada?.let { url ->
+        VisorImagenCompleta(url = url, onDismiss = { fotoSeleccionada = null })
     }
 }
 
@@ -455,5 +477,37 @@ fun InfoRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth()) {
         Text(text = "$label: ", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(text = value, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
+    }
+}
+
+@Composable
+fun VisorImagenCompleta(url: String, onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false) // Ocupa toda la pantalla
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.9f)) // Fondo oscuro semitransparente
+                .clickable { onDismiss() }, // Si tocan el fondo negro, se cierra
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = url,
+                contentDescription = "Imagen Ampliada",
+                contentScale = ContentScale.Fit, // ¡Muestra la foto completa sin recortes!
+                modifier = Modifier.fillMaxSize()
+            )
+            // Botoncito de cerrar en la esquina
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+            }
+        }
     }
 }

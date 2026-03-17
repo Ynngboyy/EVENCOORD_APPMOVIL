@@ -31,7 +31,7 @@ class GaleriaViewModel : ViewModel() {
 
                     FotoItem(
                         id = doc.id,
-                        urlImagen = doc.getString("url_imagen") ?: "",
+                        urlImagen = doc.getString("urlImagen") ?: "",
                         estado = doc.getString("estado") ?: "pendiente",
                         fechaSubida = fechaTexto
                     )
@@ -68,7 +68,7 @@ class GaleriaViewModel : ViewModel() {
 
                     FotoItem(
                         id = doc.id,
-                        urlImagen = doc.getString("url_imagen") ?: "",
+                        urlImagen = doc.getString("urlImagen") ?: "",
                         estado = "aceptado",
                         fechaSubida = fechaTexto
                     )

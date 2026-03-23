@@ -47,6 +47,7 @@ import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap
 import androidx.compose.animation.Crossfade
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
@@ -107,6 +108,16 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(
+                        onClick = {
+                            viewModel.eliminarEvento(eventoCargado.id){
+                                onBackClick()
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         ) { innerPadding ->

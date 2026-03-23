@@ -490,7 +490,7 @@ fun Nuevo(
                         TextButton(onClick = {
                             datePickerState.selectedDateMillis?.let { millis ->
                                 val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                fecha = formatter.format(Date(millis + TimeZone.getDefault().rawOffset))
+                                fecha = formatter.format(Date(millis))
                             }
                             mostrarDatePicker = false
                         }) { Text("Aceptar") }

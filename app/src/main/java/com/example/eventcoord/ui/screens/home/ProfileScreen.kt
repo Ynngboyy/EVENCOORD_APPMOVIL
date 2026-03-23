@@ -35,6 +35,9 @@ import androidx.core.content.edit
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import com.example.eventcoord.ui.uriToBase64
 import com.example.eventcoord.ui.base64ToImageBitmap
 
@@ -50,6 +53,8 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var email by remember { mutableStateOf("Cargando...")} // Correo guardado
     var phone by remember { mutableStateOf("Cargando...")} // Telefono guardado
     var profileImageBase64 by remember { mutableStateOf("") } // texto de la foto
+    var newPass by remember { mutableStateOf("") } // Contaseña nueva
+    var confirmPass by remember { mutableStateOf("") } // Confirmar contraseña nueva
     // VARIBLES TEMPORALES PARA EDITAR DATOS DE USUARIO
     var tempName by remember { mutableStateOf("") } // Varible temporal en caso de querer editar el nombre
     var tempApPat by remember { mutableStateOf("") }
@@ -66,8 +71,12 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
         mutableStateOf(sharedPrefs.getString("tema_app", "Igual que el sistema") ?: "Igual que el sistema")
     }
     var isEditing by remember { mutableStateOf(false) } // Variable para saber si esta editando información
+    var mensajeResultado by remember { mutableStateOf("") } // Variable que guarda texto para conocer el resultado
     // Notificaciones
     val notificationErrEd = remember { mutableStateOf(false) } // Notificacion de error al actualizar
+    var notificationPass by remember { mutableStateOf(false) } // Notificacion para cambiar la contraseña
+    var notificationResult by remember { mutableStateOf(false) } // Notificacion para saber el resultado de cambiar la contraseña
+    var notificationHelp by remember { mutableStateOf(false) }// Notificacion para obtener ayuda
     // LANZADOR PARA ABRIR LA GALERIA DEL TELEFONO
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -452,7 +461,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {}
+                                .clickable { notificationPass = true}
                                 .padding(vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -463,7 +472,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {}
+                                .clickable { notificationHelp = true}
                                 .padding(vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -521,5 +530,117 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                 }
             )
         }
+        if (notificationPass) {
+            AlertDialog(
+                onDismissRequest = { notificationPass = false },
+                title = { Text("Nueva Contraseña") },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = newPass,
+                            onValueChange = { newPass = it },
+                            label = { Text("Nueva contraseña") },
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = confirmPass,
+                            onValueChange = { confirmPass = it },
+                            label = { Text("Confirmar contraseña") },
+                            singleLine = true
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (newPass == confirmPass) {
+                                if (newPass.length >= 8) {
+                                    val user =FirebaseAuth.getInstance().currentUser
+                                    user?.updatePassword(newPass)
+                                        ?.addOnCompleteListener { task ->
+                                            if (task.isSuccessful) {
+                                                mensajeResultado = "Contraseña actualizada correctamente"
+                                                notificationPass = false
+                                                notificationResult = true
+                                                newPass = ""
+                                                confirmPass = ""
+                                            } else {
+                                                mensajeResultado =
+                                                    "Error: ${task.exception?.message}. Intente cerrar sesión y volver a entrar."
+                                                notificationResult = true
+                                            }
+                                        }
+                                } else {
+                                    mensajeResultado = "La contrasela debe ser de 8 caracteres minimo"
+                                    notificationResult = true
+                                }
+                            } else {
+                                mensajeResultado = "Las contraseñas no coinciden"
+                                notificationResult = true
+                            }
+                        }
+                    ) { Text("Actualizar contraseña") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { notificationPass = false }) { Text("Cancelar") }
+                }
+            )
+        }
+        if (notificationResult) {
+            AlertDialog(
+                onDismissRequest = { notificationResult = false },
+                title = { Text("Aviso") },
+                text = { Text(mensajeResultado) },
+                confirmButton = {
+                    TextButton(onClick = { notificationResult = false }) { Text("OK") }
+                }
+            )
+        }
+        if (notificationHelp) {
+            AlertDialog(
+                onDismissRequest = { notificationHelp = false },
+                icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null) },
+                title = { Text("Centro de Ayuda") },
+                text = {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState())
+                    ) {
+                        Text("Preguntas Frecuentes", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        PreguntaRespuesta(
+                            "¿Cómo acepto las fotos que recibo?",
+                            "En las seccion de *Galería* solo debes de deslizar la foto a la derecha para aceptarla o a la izquierda para denegarla"
+                        )
+                        PreguntaRespuesta(
+                            "¿Cómo elimino un evento?",
+                            "Entra a el evento, toca el ícono de engranaje ⚙️ arriba a la derecha y selecciona la opción de eliminar."
+                        )
+                        PreguntaRespuesta(
+                            "¿Comó obtengo el video recopilatorio de las fotos?",
+                            "Entra a la sección de *Fotos Guardadas* y arriba a la derecha e el icono de descarga los encontraras"
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                        Text("Soporte Técnico", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                        Text("Si tienes problemas con tu cuenta, contáctanos:", style = MaterialTheme.typography.bodySmall)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Suport@eventsync.org.mx", fontWeight = FontWeight.Bold)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { notificationHelp = false }) {
+                        Text("Entendido")
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun PreguntaRespuesta(pregunta: String, respuesta: String) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(pregunta, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+        Text(respuesta, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
     }
 }

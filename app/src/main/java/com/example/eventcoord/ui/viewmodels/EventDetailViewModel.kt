@@ -58,4 +58,14 @@ class EventDetailViewModel : ViewModel() {
                 }
         }
     }
+    fun eliminarEvento(eventoId: String, onSucces: () -> Unit) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("eventos").document(eventoId).delete()
+            .addOnSuccessListener {
+                onSucces()
+            }
+            .addOnFailureListener { e ->
+                println("Error al eliminar: ${e.message}")
+            }
+    }
 }

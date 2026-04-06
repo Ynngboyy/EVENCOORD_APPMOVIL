@@ -29,6 +29,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +45,9 @@ fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () 
     val db = FirebaseFirestore.getInstance()
     val currentUser = auth.currentUser
     var profileImageBase64 by remember { mutableStateOf("") }
+
+    var mostrarPasados by remember { mutableStateOf(false) }
+    val eventosAMostrar = if (mostrarPasados) viewModel.listaEventosPasados else viewModel.listaEventosActivos
 
     LaunchedEffect(Unit) {
         viewModel.cargarEventos()
@@ -143,45 +150,66 @@ fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () 
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = "Próximos Eventos",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.padding(bottom = 24.dp) // Un poco más de aire
-                    )
+                    TabRow(
+                        selectedTabIndex = if (mostrarPasados) 1 else 0,
+                        modifier = Modifier
+                            .padding(bottom = 24.dp)
+                            .fillMaxWidth(0.8f),
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        indicator = { tabPositions ->
+                            TabRowDefaults.SecondaryIndicator(
+                                Modifier.tabIndicatorOffset(tabPositions[if (mostrarPasados) 1 else 0]),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    ) {
+                        Tab(
+                            selected = !mostrarPasados,
+                            onClick = { mostrarPasados = false },
+                            text = {
+                                Text("Próximos", fontWeight = if (!mostrarPasados) FontWeight.Bold else FontWeight.Normal)
+                            }
+                        )
+                        Tab(
+                            selected = mostrarPasados,
+                            onClick = { mostrarPasados = true },
+                            text = {
+                                Text("Historial", fontWeight = if (mostrarPasados) FontWeight.Bold else FontWeight.Normal)
+                            }
+                        )
+                    }
 
-                    if (viewModel.listaEventos.isEmpty()) {
+                    if (eventosAMostrar.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxWidth().height(205.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Aún no tienes eventos.\n¡Crea uno nuevo!",
+                                text = if (mostrarPasados) "No tienes eventos pasados." else "Aún no tienes eventos.\n¡Crea uno nuevo!",
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                                 textAlign = TextAlign.Center
                             )
                         }
                     } else {
                         HorizontalMultiBrowseCarousel(
-                            state = rememberCarouselState { viewModel.listaEventos.count() },
+                            state = rememberCarouselState { eventosAMostrar.count() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .wrapContentHeight(),
-                            preferredItemWidth = 200.dp, // Ligeramente más anchas para que el texto quepa mejor
+                            preferredItemWidth = 200.dp,
                             itemSpacing = 12.dp,
                             contentPadding = PaddingValues(horizontal = 16.dp)
                         ) { index ->
-                            val eventoReal = viewModel.listaEventos[index]
+                            val eventoReal = eventosAMostrar[index]
                             val bitmapPortada = eventoReal.portada.takeIf { it.isNotBlank() }?.let { base64ToImageBitmap(it) }
 
                             Box(
                                 modifier = Modifier
                                     .clickable { onEvent(eventoReal.id) }
-                                    .height(260.dp) // Hice la tarjeta un poco más alta para que luzca la foto
+                                    .height(260.dp)
                                     .maskClip(MaterialTheme.shapes.extraLarge)
                             ) {
-                                // 1. LA FOTO DE FONDO
                                 if (bitmapPortada != null) {
                                     Image(
                                         bitmap = bitmapPortada,
@@ -197,11 +225,10 @@ fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () 
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 }
-                                // 2. EL DEGRADADO Y TÍTULO SOBREPUESTO (OVERLAY)
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .align(Alignment.BottomCenter) // Se ancla abajo
+                                        .align(Alignment.BottomCenter)
                                         .background(
                                             brush = Brush.verticalGradient(
                                                 colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
@@ -214,8 +241,8 @@ fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () 
                                         color = Color.White,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        maxLines = 2, // Si el título es muy largo, usa 2 líneas
-                                        overflow = TextOverflow.Ellipsis // Y si no cabe, pone "..."
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }

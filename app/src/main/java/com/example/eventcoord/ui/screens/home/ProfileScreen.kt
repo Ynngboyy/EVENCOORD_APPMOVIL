@@ -500,7 +500,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
-                            text = "EventCoord v0.6.0",
+                            text = "EventCoord v1.1.0",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                             modifier = Modifier.align(Alignment.CenterHorizontally)

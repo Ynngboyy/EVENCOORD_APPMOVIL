@@ -1,5 +1,6 @@
 package com.example.eventcoord.ui.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
@@ -44,7 +45,14 @@ class GaleriaViewModel : ViewModel() {
         val ref = db.collection("eventos").document(eventoId)
             .collection("fotos_revision").document(foto.id)
 
-        ref.update("estado", "aceptado")
+        ref.update(
+            "estado", "aceptado",
+            "uso_video", "pendiente"
+        ).addOnSuccessListener {
+            Log.d("Firebase", "Foto aceptada y lista para el motor de video")
+        }.addOnFailureListener { e ->
+            Log.e("Firebase", "Error al actualizar: ${e.message}")
+        }
     }
 
     fun rechazarFoto(eventoId: String, foto: FotoItem) {

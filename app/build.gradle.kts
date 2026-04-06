@@ -51,11 +51,34 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
+
+
+    //implementacion cloudinary
+    implementation("com.cloudinary:cloudinary-android:2.5.0")
+    implementation("androidx.core:core-ktx:1.12.0") // Para .scale()
+    implementation("com.google.protobuf:protobuf-javalite:3.21.12")
+
+    //implementacion firebase
+    implementation("com.google.firebase:firebase-firestore-ktx:24.10.3")
+    implementation("com.google.firebase:firebase-common-ktx:20.4.2")
+    implementation(libs.androidx.ui.graphics)
+
+    //video con media3 implementacion de compose
+    val media3Version = "1.2.1"
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
+    implementation("androidx.media3:media3-common:$media3Version")
+    implementation("androidx.media3:media3-transformer:$media3Version")
+    implementation("androidx.media3:media3-effect:$media3Version")
+
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     implementation("com.google.zxing:core:3.5.3")
     implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.accompanist:accompanist-permissions:0.34.0") // Opcional para permisos
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)

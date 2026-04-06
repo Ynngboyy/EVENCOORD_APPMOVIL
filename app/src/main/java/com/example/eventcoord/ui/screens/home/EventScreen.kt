@@ -12,60 +12,20 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.VideoLibrary
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +35,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -96,6 +57,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.example.eventcoord.data.model.Actividad
 import com.example.eventcoord.data.model.Evento
+import com.example.eventcoord.data.model.Invitado
 import com.example.eventcoord.ui.viewmodels.EventDetailViewModel
 import com.example.eventcoord.ui.viewmodels.FotoItem
 import com.example.eventcoord.ui.viewmodels.GaleriaViewModel
@@ -129,26 +91,24 @@ fun generarCodigoQR(content: String): Bitmap? {
 }
 
 @Composable
-fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetailViewModel = viewModel(),reproductorViewModel: ReproductorViewModel = viewModel(),videoViewModel: VideoViewModel = viewModel()) {
+fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetailViewModel = viewModel(), reproductorViewModel: ReproductorViewModel = viewModel(), videoViewModel: VideoViewModel = viewModel()) {
     var actualSection by remember { mutableStateOf("Principal") }
+
     LaunchedEffect(eventoId) {
         viewModel.cargarEventoPorId(eventoId)
-
-
         videoViewModel.actualizarFotosExistentes(eventoId)
     }
+
     val eventoCargado = viewModel.eventoCargado
     if (eventoCargado == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else {
-
         val videosState by produceState<List<String>>(initialValue = emptyList()) {
             try {
                 FirebaseFirestore.getInstance()
                     .collection("favoritos")
-                    // Solo videos de este evento
                     .whereEqualTo("eventoId", eventoId)
                     .snapshots()
                     .map { querySnapshot ->
@@ -254,45 +214,77 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                Text(
-                                    text = "Acerca del evento",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.align(Alignment.Start)
-                                )
-                                Text(
-                                    text = eventoCargado.descripcion.ifBlank { "Sin descripción adicional." },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                                    textAlign = TextAlign.Justify,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
+                                // === NUEVO MENÚ EN CUADRÍCULA CON EL BOTÓN DE VIDEOS ===
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    MenuCard(
+                                        text = "Programa",
+                                        icon = Icons.Default.Schedule,
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Programa" }
+
+                                    MenuCard(
+                                        text = "Galería",
+                                        icon = Icons.Default.PhotoLibrary,
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Galeria" }
+                                }
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                MenuCard("Programa", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant) {
-                                    actualSection = "Programa"
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    MenuCard(
+                                        text = "Guardadas",
+                                        icon = Icons.Default.Favorite,
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Favoritos" }
+
+                                    MenuCard(
+                                        text = "Invitados",
+                                        icon = Icons.Default.People,
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Invitados" }
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                MenuCard("Galería", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary) {
-                                    actualSection = "Galeria"
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    MenuCard(
+                                        text = "Videos",
+                                        icon = Icons.Default.VideoLibrary,
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Reproductor" }
+
+                                    // Espacio vacío para mantener el botón cuadrado
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                MenuCard("Fotos Guardadas", MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface) {
-                                    actualSection = "Favoritos"
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                MenuCard("Momentos del evento", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurface) {
-                                    actualSection = "Reproductor"
-                                }
+                                Spacer(modifier = Modifier.height(32.dp))
                             }
                         }
                         "Descripcion" -> DescripcionSeccion(evento = eventoCargado)
                         "Programa" -> ProgramaSeccion(actividades = eventoCargado.programa)
                         "Galeria" -> GaleriaSeccion(eventoId = eventoCargado.id)
-                        "Favoritos" -> FavoritosSeccion(eventoId = eventoCargado.id)
+                        "Favoritos" -> FavoritosSeccion(eventoId = eventoCargado.id, videoViewModel = videoViewModel)
                         "AccesoQR" -> AccesoQR(eventoId = eventoCargado.id)
+                        "Invitados" -> InvitadosSeccion(eventoId = eventoCargado.id, viewModel = viewModel)
                         "Reproductor" -> GaleriaVideosScreen(reproductorVM = reproductorViewModel, videosFromFirebase = videosState)
                     }
                 }
@@ -301,18 +293,47 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
     }
 }
 
+// === COMPONENTES DE MENÚ ===
 @Composable
-fun MenuCard(text: String, containerColor: Color, contentColor: Color, onClick: () -> Unit) {
+fun MenuCard(
+    text: String,
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier.fillMaxWidth().height(120.dp).clickable { onClick() },
+        modifier = modifier
+            .aspectRatio(1f)
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = text, color = contentColor, fontWeight = FontWeight.Bold)
+        Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = contentColor,
+                modifier = Modifier.size(42.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = text,
+                color = contentColor,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                fontSize = 14.sp
+            )
         }
     }
 }
+
+// === RESTO DE SECCIONES (Tinder, Programa, Favoritos, Videos, Invitados) ===
 
 @Composable
 fun DescripcionSeccion(evento: Evento) {
@@ -345,21 +366,6 @@ fun DescripcionSeccion(evento: Evento) {
                 InfoRow(label = "Lugar", value = evento.lugar)
             }
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "Notas Adicionales",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = evento.descripcion.ifBlank { "No hay notas adicionales para este evento." },
-            style = MaterialTheme.typography.bodyMedium,
-            lineHeight = 20.sp,
-            textAlign = TextAlign.Justify,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
-        )
     }
 }
 
@@ -429,7 +435,6 @@ fun GaleriaSeccion(eventoId: String, vModel: GaleriaViewModel = viewModel()){
                 )
             }
         }
-
     }
 }
 
@@ -450,8 +455,7 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
         modifier = Modifier
             .fillMaxSize()
             .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-            .graphicsLayer { rotationZ = offsetX.value / 25f // Rotación suave
-
+            .graphicsLayer { rotationZ = offsetX.value / 25f
                 val scale = (1f - (Math.abs(offsetX.value) / 3000f)).coerceIn(0.9f, 1f)
                 scaleX = scale
                 scaleY = scale}
@@ -474,10 +478,8 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
             },
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(8.dp),
-        // Fondo negro
         border = BorderStroke(width = grosorBorde, color = colorBorde),
         colors = CardDefaults.cardColors(containerColor = Color.Black)
-
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
@@ -486,7 +488,6 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
                 .build(),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            // Fit en vez de Crop para ver la foto entera
             contentScale = ContentScale.Fit,
             onError = { error -> println("ERROR_COIL: ${error.result.throwable.message}") }
         )
@@ -495,24 +496,17 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
 
 @Composable
 fun FavoritosSeccion(
-
     eventoId: String,
     vModel: GaleriaViewModel = viewModel(),
-    // Inyectamos el motor de video que creamos
     videoViewModel: VideoViewModel = viewModel()
 ) {
     val listaFavoritos by vModel.favoritos.collectAsState()
     LaunchedEffect(eventoId) { vModel.cargarFavoritos(eventoId) }
 
     var fotoSeleccionada by remember { mutableStateOf<String?>(null) }
-
-    // Estados del video
     val procesando = videoViewModel.isProcessing
     val progreso = videoViewModel.progress
-    val rutaVideo by remember { mutableStateOf<String?>(null) }
-    //notificacion del video
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(procesando) {
         if (!procesando && progreso >= 1f) {
@@ -526,26 +520,20 @@ fun FavoritosSeccion(
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = Color.Transparent // Mantiene el fondo
+        containerColor = Color.Transparent
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(8.dp)) {
-            // Encabezado de la sección
             Card(
                 modifier = Modifier.fillMaxWidth().height(80.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "Mis Fotos Guardadas",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Text("Mis Fotos Guardadas", color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.titleMedium)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            //SECCIÓN DE GENERACIÓN DE VIDEO
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -554,16 +542,13 @@ fun FavoritosSeccion(
                     if (procesando) {
                         Text("Procesando lote de 10 fotos...", fontWeight = FontWeight.Bold)
                         LinearProgressIndicator(
-                            progress = { progreso }, // <--- Usa llaves { } para pasarlo como función
+                            progress = { progreso },
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(CircleShape)
                         )
                         Text("${(progreso * 100).toInt()}%")
                     } else {
                         Button(
-                            onClick = {
-                                // Solo envíale el ID del evento
-                                videoViewModel.processNextBatch(eventoId)
-                            },
+                            onClick = { videoViewModel.processNextBatch(eventoId) },
                             enabled = listaFavoritos.size >= 10,
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -575,13 +560,9 @@ fun FavoritosSeccion(
                 }
             }
 
-
             if (listaFavoritos.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "Aún no has guardado fotos.",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                    )
+                    Text("Aún no has guardado fotos.", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
                 }
             } else {
                 LazyVerticalGrid(
@@ -613,9 +594,94 @@ fun FavoritosSeccion(
     fotoSeleccionada?.let { url ->
         VisorImagenCompleta(url = url, onDismiss = { fotoSeleccionada = null })
     }
-
 }
 
+// === SECCIÓN DE INVITADOS (Tuya) ===
+@Composable
+fun InvitadosSeccion(eventoId: String, viewModel: EventDetailViewModel) {
+    LaunchedEffect(eventoId) {
+        viewModel.escucharInvitados(eventoId)
+    }
+
+    val invitados = viewModel.listaInvitados
+    val asisten = invitados.filter { it.asiste }
+    val noAsisten = invitados.filter { !it.asiste }
+    val totalPersonas = asisten.sumOf { 1 + it.acompanantes }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Lista de Invitados", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            EstadisticaCard(titulo = "Confirmados", valor = asisten.size.toString(), color = Color(0xFF4CAF50), modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(8.dp))
+            EstadisticaCard(titulo = "Asistencia Total", valor = totalPersonas.toString(), color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(8.dp))
+            EstadisticaCard(titulo = "Cancelados", valor = noAsisten.size.toString(), color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (invitados.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Nadie ha respondido aún.", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+            }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(invitados) { invitado ->
+                    InvitadoItem(invitado)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EstadisticaCard(titulo: String, valor: String, color: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.height(80.dp),
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f)),
+        border = BorderStroke(1.dp, color)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(valor, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
+            Text(titulo, fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f), textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+fun InvitadoItem(invitado: Invitado) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(invitado.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (invitado.asiste && invitado.acompanantes > 0) {
+                    Text("+ ${invitado.acompanantes} acompañantes", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+                }
+            }
+            if (invitado.asiste) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Asiste", tint = Color(0xFF4CAF50))
+            } else {
+                Icon(Icons.Default.Cancel, contentDescription = "No Asiste", tint = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+// === COMPONENTES GENERALES Y DE VIDEO ===
 @Composable
 fun AccesoQR(eventoId: String) {
     val qrBitmap = remember(eventoId) { generarCodigoQR(eventoId) }
@@ -660,27 +726,21 @@ fun InfoRow(label: String, value: String) {
 fun VisorImagenCompleta(url: String, onDismiss: () -> Unit) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false) // Ocupa toda la pantalla
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.9f)) // Fondo oscuro semitransparente
-                .clickable { onDismiss() }, // Si tocan el fondo negro, se cierra
+            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.9f)).clickable { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
                 model = url,
                 contentDescription = "Imagen Ampliada",
-                contentScale = ContentScale.Fit, // ¡Muestra la foto completa sin recortes!
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize()
             )
-            // Botoncito de cerrar en la esquina
             IconButton(
                 onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
             ) {
                 Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
             }
@@ -688,40 +748,32 @@ fun VisorImagenCompleta(url: String, onDismiss: () -> Unit) {
     }
 }
 
-
 @Composable
 fun Reproductor(url: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
-
-    // Inicia ExoPlayer una sola vez
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(url))
             prepare()
-            playWhenReady = true // Auto-play
+            playWhenReady = true
         }
     }
 
     DisposableEffect(Unit) {
-        onDispose {
-            exoPlayer.release()
-        }
+        onDispose { exoPlayer.release() }
     }
 
-    // Interfaz del reproductor
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
-                    useController = true // Muestra pausa, play y barra de tiempo
+                    useController = true
                     setBackgroundColor(0xFF000000.toInt())
                 }
             },
             modifier = Modifier.fillMaxSize()
         )
-
-        // Botón para cerrar
         IconButton(
             onClick = onDismiss,
             modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
@@ -737,21 +789,17 @@ fun GaleriaVideosScreen(
     videosFromFirebase: List<String>
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center // Para centrar texto
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
     ) {
         if (videosFromFirebase.isEmpty()) {
-
-            // ESTADO VACÍO: Si la lista llega de Firestore en 0
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.padding(32.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.VideoLibrary, // Necesitas importar Icons.Default
+                    imageVector = Icons.Default.VideoLibrary,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
@@ -764,10 +812,7 @@ fun GaleriaVideosScreen(
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
             }
-
         } else {
-
-            // CUADRÍCULA DE VIDEOS (Estilo Instagram)
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 contentPadding = PaddingValues(2.dp),
@@ -784,16 +829,14 @@ fun GaleriaVideosScreen(
             }
         }
 
-        // REPRODUCTOR EMERGENTE (Overlay con Dialog)
         reproductorVM.videoActivoUrl?.let { urlActiva ->
             Dialog(
                 onDismissRequest = { reproductorVM.cerrarReproductor() },
                 properties = DialogProperties(
-                    usePlatformDefaultWidth = false, // Esto permite pantalla completa real
+                    usePlatformDefaultWidth = false,
                     dismissOnBackPress = true
                 )
             ) {
-
                 Reproductor(
                     url = urlActiva,
                     onDismiss = { reproductorVM.cerrarReproductor() }
@@ -805,7 +848,6 @@ fun GaleriaVideosScreen(
 
 @Composable
 fun VideoGridItem(url: String, onClick: () -> Unit) {
-
     val thumbnailUrl = remember(url) { url.replace(".mp4", ".jpg") }
 
     Box(
@@ -827,26 +869,20 @@ fun VideoGridItem(url: String, onClick: () -> Unit) {
             placeholder = ColorPainter(Color.Gray.copy(alpha = 0.5f)),
             error = ColorPainter(Color.Red.copy(alpha = 0.1f))
         )
-
-        // Capa para que el icono sea visible
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.3f)),
-                        startY = 100f
-                    )
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.3f)),
+                    startY = 100f
                 )
+            )
         )
-
-        // Icono de Play
         Icon(
             imageVector = Icons.Default.PlayArrow,
             contentDescription = null,
             tint = Color.White,
             modifier = Modifier
-                .align(Alignment.BottomEnd) // Esquina inferior derecha
+                .align(Alignment.BottomEnd)
                 .padding(8.dp)
                 .size(24.dp)
                 .background(Color.Black.copy(alpha = 0.5f), CircleShape)

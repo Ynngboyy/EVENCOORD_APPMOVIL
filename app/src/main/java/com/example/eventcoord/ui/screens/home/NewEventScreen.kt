@@ -292,7 +292,7 @@ fun Nuevo(
             TextField(
                 value = anfitrion,
                 onValueChange = { anfitrion = it }, // Actualiza la variable cuando el usuario escribe
-                label = { Text("Anfitrion(es)") },
+                label = { Text("Anfitríon (es)") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 singleLine = true,
@@ -401,7 +401,7 @@ fun Nuevo(
                 TextField(
                     value = nuevoTitulo,
                     onValueChange = { nuevoTitulo = it }, // Actualiza la variable cuando el usuario escribe
-                    label = { Text("Titulo") },
+                    label = { Text("Título") },
                     modifier = Modifier.weight(2f),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     singleLine = true,

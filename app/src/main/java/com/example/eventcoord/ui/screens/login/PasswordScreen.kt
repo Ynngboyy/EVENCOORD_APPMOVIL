@@ -75,7 +75,7 @@ fun PasswordScreen(onBackClick: () -> Unit) {
                     value = email,
                     onValueChange = { email = it
                         isError = false }, // Actualiza la variable cuando el usuario escribe
-                    label = { Text("Correo Electronico") },
+                    label = { Text("Correo Electrónico") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
                     singleLine = true,

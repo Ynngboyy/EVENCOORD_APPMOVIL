@@ -138,7 +138,7 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
                 TextField(
                     value = phoneNumber,
                     onValueChange = { phoneNumber = it }, // Actualiza la variable cuando el usuario escribe
-                    label = { Text("Numero telefonico") },
+                    label = { Text("Número Telefónico") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
                     singleLine = true,

@@ -96,7 +96,7 @@ fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () 
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "MI CUENTA",
+                        text = "Mi cuenta",
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         fontSize = 20.sp,
                     )
@@ -144,7 +144,7 @@ fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () 
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "PRÓXIMOS EVENTOS",
+                        text = "Próximos Eventos",
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,

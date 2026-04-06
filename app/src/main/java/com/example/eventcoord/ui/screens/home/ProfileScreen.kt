@@ -40,6 +40,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import com.example.eventcoord.ui.uriToBase64
 import com.example.eventcoord.ui.base64ToImageBitmap
+import com.google.firebase.auth.EmailAuthProvider
 
 @Composable
 fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
@@ -53,8 +54,9 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
     var email by remember { mutableStateOf("Cargando...")} // Correo guardado
     var phone by remember { mutableStateOf("Cargando...")} // Telefono guardado
     var profileImageBase64 by remember { mutableStateOf("") } // texto de la foto
-    var newPass by remember { mutableStateOf("") } // Contaseña nueva
-    var confirmPass by remember { mutableStateOf("") } // Confirmar contraseña nueva
+    var currentPass by remember { mutableStateOf("") } // Contraseña actual (para re-autenticar)
+    var newPass by remember { mutableStateOf("") } // Contraseña nueva
+    var confirmPass by remember { mutableStateOf("") } // Confirmar contraseña nueva// Confirmar contraseña nueva
     // VARIBLES TEMPORALES PARA EDITAR DATOS DE USUARIO
     var tempName by remember { mutableStateOf("") } // Varible temporal en caso de querer editar el nombre
     var tempApPat by remember { mutableStateOf("") }
@@ -533,9 +535,22 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
         if (notificationPass) {
             AlertDialog(
                 onDismissRequest = { notificationPass = false },
-                title = { Text("Nueva Contraseña") },
+                title = { Text("Cambiar Contraseña") },
                 text = {
                     Column {
+                        Text(
+                            text = "Por seguridad, ingresa tu contraseña actual para confirmar el cambio.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = currentPass,
+                            onValueChange = { currentPass = it },
+                            label = { Text("Contraseña actual") },
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = newPass,
                             onValueChange = { newPass = it },
@@ -546,7 +561,7 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                         OutlinedTextField(
                             value = confirmPass,
                             onValueChange = { confirmPass = it },
-                            label = { Text("Confirmar contraseña") },
+                            label = { Text("Confirmar nueva") },
                             singleLine = true
                         )
                     }
@@ -554,33 +569,53 @@ fun ProfileScreen(onLogOut: () -> Unit, onBackClick: () -> Unit){
                 confirmButton = {
                     Button(
                         onClick = {
+                            if (currentPass.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
+                                mensajeResultado = "Por favor, llena todos los campos."
+                                notificationResult = true
+                                return@Button
+                            }
                             if (newPass == confirmPass) {
                                 if (newPass.length >= 8) {
-                                    val user =FirebaseAuth.getInstance().currentUser
-                                    user?.updatePassword(newPass)
-                                        ?.addOnCompleteListener { task ->
-                                            if (task.isSuccessful) {
-                                                mensajeResultado = "Contraseña actualizada correctamente"
-                                                notificationPass = false
-                                                notificationResult = true
-                                                newPass = ""
-                                                confirmPass = ""
+                                    val user = FirebaseAuth.getInstance().currentUser
+                                    val emailUser = user?.email
+
+                                    if (user != null && emailUser != null) {
+                                        isLoading = true
+                                        val credential = EmailAuthProvider.getCredential(emailUser, currentPass)
+                                        user.reauthenticate(credential).addOnCompleteListener { reauthTask ->
+                                            if (reauthTask.isSuccessful) {
+                                                user.updatePassword(newPass).addOnCompleteListener { updateTask ->
+                                                    isLoading = false
+                                                    if (updateTask.isSuccessful) {
+                                                        mensajeResultado = "Contraseña actualizada correctamente"
+                                                        notificationPass = false
+                                                        notificationResult = true
+
+                                                        currentPass = ""
+                                                        newPass = ""
+                                                        confirmPass = ""
+                                                    } else {
+                                                        mensajeResultado = "Error al actualizar: ${updateTask.exception?.message}"
+                                                        notificationResult = true
+                                                    }
+                                                }
                                             } else {
-                                                mensajeResultado =
-                                                    "Error: ${task.exception?.message}. Intente cerrar sesión y volver a entrar."
+                                                isLoading = false
+                                                mensajeResultado = "La contraseña actual es incorrecta."
                                                 notificationResult = true
                                             }
                                         }
+                                    }
                                 } else {
-                                    mensajeResultado = "La contrasela debe ser de 8 caracteres minimo"
+                                    mensajeResultado = "La contraseña debe tener mínimo 8 caracteres."
                                     notificationResult = true
                                 }
                             } else {
-                                mensajeResultado = "Las contraseñas no coinciden"
+                                mensajeResultado = "Las contraseñas nuevas no coinciden."
                                 notificationResult = true
                             }
                         }
-                    ) { Text("Actualizar contraseña") }
+                    ) { Text("Actualizar") }
                 },
                 dismissButton = {
                     TextButton(onClick = { notificationPass = false }) { Text("Cancelar") }

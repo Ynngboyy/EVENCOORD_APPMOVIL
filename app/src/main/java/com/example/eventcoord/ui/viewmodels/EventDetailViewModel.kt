@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.eventcoord.data.model.Actividad
 import com.example.eventcoord.data.model.Evento
+import com.example.eventcoord.data.model.Invitado
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
@@ -15,7 +16,22 @@ class EventDetailViewModel : ViewModel() {
 
     var eventoCargado by mutableStateOf<Evento?>(null)
         private set
-
+    var listaInvitados by mutableStateOf<List<Invitado>>(emptyList())
+        private set
+    fun escucharInvitados(eventoId: String) {
+        db.collection("eventos").document(eventoId).collection("invitados")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    println("Error cargando invitados: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    listaInvitados = snapshot.documents.mapNotNull {
+                        it.toObject(Invitado::class.java)
+                    }
+                }
+            }
+    }
     fun cargarEventoPorId(eventoId: String) {
         viewModelScope.launch {
             // 1. Descargamos los datos principales del evento

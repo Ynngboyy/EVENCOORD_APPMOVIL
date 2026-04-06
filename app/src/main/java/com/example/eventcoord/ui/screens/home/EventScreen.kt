@@ -50,6 +50,16 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Cancel
+import com.example.eventcoord.data.model.Invitado
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.People
+import androidx.compose.ui.graphics.vector.ImageVector
 
 @SuppressLint("UseKtx")
 fun generarCodigoQR(content: String): Bitmap? {
@@ -203,17 +213,53 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                MenuCard("Programa", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant) {
-                                    actualSection = "Programa"
+                                // PRIMERA FILA (2 Cuadrados)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    MenuCard(
+                                        text = "Programa",
+                                        icon = Icons.Default.Schedule,
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Programa" }
+
+                                    MenuCard(
+                                        text = "Galería",
+                                        icon = Icons.Default.PhotoLibrary,
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Galeria" }
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                MenuCard("Galería", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary) {
-                                    actualSection = "Galeria"
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // SEGUNDA FILA (2 Cuadrados)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    MenuCard(
+                                        text = "Guardadas",
+                                        icon = Icons.Default.Favorite,
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Favoritos" }
+
+                                    MenuCard(
+                                        text = "Invitados",
+                                        icon = Icons.Default.People,
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.weight(1f)
+                                    ) { actualSection = "Invitados" }
                                 }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                MenuCard("Fotos Guardadas", MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface) {
-                                    actualSection = "Favoritos"
-                                }
+
+                                Spacer(modifier = Modifier.height(32.dp))
                             }
                         }
                         "Descripcion" -> DescripcionSeccion(evento = eventoCargado)
@@ -221,6 +267,7 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
                         "Galeria" -> GaleriaSeccion(eventoId = eventoCargado.id)
                         "Favoritos" -> FavoritosSeccion(eventoId = eventoCargado.id)
                         "AccesoQR" -> AccesoQR(eventoId = eventoCargado.id)
+                        "Invitados" -> InvitadosSeccion(eventoId = eventoCargado.id, viewModel = viewModel)
                     }
                 }
             }
@@ -229,14 +276,33 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
 }
 
 @Composable
-fun MenuCard(text: String, containerColor: Color, contentColor: Color, onClick: () -> Unit) {
+fun MenuCard(text: String, icon: ImageVector, containerColor: Color, contentColor: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().height(120.dp).clickable { onClick() },
+        modifier = modifier
+            .aspectRatio(1f)
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = text, color = contentColor, fontWeight = FontWeight.Bold)
+        Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = contentColor,
+                modifier = Modifier.size(42.dp) // Ícono grande y vistoso
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = text,
+                color = contentColor,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                fontSize = 14.sp
+            )
         }
     }
 }
@@ -518,6 +584,94 @@ fun VisorImagenCompleta(url: String, onDismiss: () -> Unit) {
                     .padding(16.dp)
             ) {
                 Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+fun InvitadosSeccion(eventoId: String, viewModel: EventDetailViewModel) {
+    // Activamos el escuchador en tiempo real al entrar a la pantalla
+    LaunchedEffect(eventoId) {
+        viewModel.escucharInvitados(eventoId)
+    }
+
+    val invitados = viewModel.listaInvitados
+    val asisten = invitados.filter { it.asiste }
+    val noAsisten = invitados.filter { !it.asiste }
+    // Calculamos bocas que alimentar: 1 (el invitado principal) + sus acompañantes
+    val totalPersonas = asisten.sumOf { 1 + it.acompanantes }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Lista de Invitados", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Tarjetas de Estadísticas Superiores
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            EstadisticaCard(titulo = "Confirmados", valor = asisten.size.toString(), color = Color(0xFF4CAF50), modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(8.dp))
+            EstadisticaCard(titulo = "Asistencia Total", valor = totalPersonas.toString(), color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(8.dp))
+            EstadisticaCard(titulo = "Cancelados", valor = noAsisten.size.toString(), color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Lista de Invitados
+        if (invitados.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Nadie ha respondido aún.", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+            }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(invitados) { invitado ->
+                    InvitadoItem(invitado)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EstadisticaCard(titulo: String, valor: String, color: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.height(80.dp),
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(valor, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
+            Text(titulo, fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f), textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+fun InvitadoItem(invitado: Invitado) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(invitado.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (invitado.asiste && invitado.acompanantes > 0) {
+                    Text("+ ${invitado.acompanantes} acompañantes", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+                }
+            }
+            if (invitado.asiste) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Asiste", tint = Color(0xFF4CAF50))
+            } else {
+                Icon(Icons.Default.Cancel, contentDescription = "No Asiste", tint = MaterialTheme.colorScheme.error)
             }
         }
     }

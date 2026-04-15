@@ -49,7 +49,7 @@ class EventDetailViewModel : ViewModel() {
                                     val listaActividades = mutableListOf<Actividad>()
 
                                     for (doc in snapshotPrograma.documents) {
-                                        val actividad = doc.toObject(Actividad::class.java)
+                                        val actividad = doc.toObject(Actividad::class.java)?.copy(id = doc.id)
                                         if (actividad != null) {
                                             listaActividades.add(actividad)
                                         }
@@ -74,14 +74,45 @@ class EventDetailViewModel : ViewModel() {
                 }
         }
     }
-    fun eliminarEvento(eventoId: String, onSucces: () -> Unit) {
+    fun eliminarEventoTotal(eventoId: String, onSuccess: () -> Unit) {
         val db = FirebaseFirestore.getInstance()
+        // Borramos el documento principal del evento
         db.collection("eventos").document(eventoId).delete()
             .addOnSuccessListener {
-                onSucces()
+                onSuccess() // Le avisamos a la pantalla que ya terminó para que se cierre
             }
             .addOnFailureListener { e ->
-                println("Error al eliminar: ${e.message}")
+                println("Error al eliminar evento: ${e.message}")
+            }
+    }
+    fun agregarActividad(eventoId: String, actividad: Actividad) {
+        val db = FirebaseFirestore.getInstance()
+        val nuevaRef = db.collection("eventos").document(eventoId).collection("programa").document()
+
+        val actividadConId = actividad.copy(id = nuevaRef.id)
+
+        nuevaRef.set(actividadConId).addOnSuccessListener {
+            // Actualizamos la pantalla al instante
+            val eventoActual = eventoCargado
+            if (eventoActual != null) {
+                val nuevaLista = eventoActual.programa.toMutableList()
+                nuevaLista.add(actividadConId)
+                eventoCargado = eventoActual.copy(programa = nuevaLista)
+            }
+        }
+    }
+
+    fun eliminarActividad(eventoId: String, actividadId: String) {
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("eventos").document(eventoId).collection("programa").document(actividadId).delete()
+            .addOnSuccessListener {
+                // Removemos la actividad de la pantalla al instante
+                val eventoActual = eventoCargado
+                if (eventoActual != null) {
+                    val nuevaLista = eventoActual.programa.filter { it.id != actividadId }
+                    eventoCargado = eventoActual.copy(programa = nuevaLista)
+                }
             }
     }
 }

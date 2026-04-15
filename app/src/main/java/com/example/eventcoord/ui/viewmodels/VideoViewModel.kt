@@ -119,6 +119,12 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
 
                 workManager.enqueue(videoRequest)
 
+                val batch = db.batch()
+                documents.forEach { doc ->
+                    batch.update(doc.reference, "uso_video", "usado")
+                }
+                batch.commit().await()
+
             } catch (e: Exception) {
                 Log.e("VideoVM", "Error en flujo: ${e.message}")
                 resetState()

@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
@@ -26,7 +27,7 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun PasswordScreen(onBackClick: () -> Unit) {
     // VARAIBLES DE ESTADO
-    val logogris = painterResource(R.drawable.eventcoord_logo_gris) // Imagen de Logo
+    val logogris = painterResource(R.drawable.eventcoord_logo_v2) // Imagen de Logo
     var isLoading by remember { mutableStateOf(false)} // Variable para guardar el email
     var isError by remember { mutableStateOf(false) }
     // NOTIFICACIONES
@@ -52,7 +53,8 @@ fun PasswordScreen(onBackClick: () -> Unit) {
                     modifier = Modifier
                         .width(220.dp)
                         .height(220.dp)
-                        .padding(8.dp)
+                        .padding(8.dp),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
                 )
                 Spacer(modifier = Modifier.height(32.dp)) // Espacios para una mejor presentacion
                 Text(

@@ -11,7 +11,8 @@ data class FotoItem(
     val id: String = "",
     val urlImagen: String = "",
     val estado: String = "",
-    val fechaSubida: String = ""
+    val fechaSubida: String = "",
+    val usoVideo: String = "pendiente"
 )
 
 class GaleriaViewModel : ViewModel() {
@@ -78,7 +79,8 @@ class GaleriaViewModel : ViewModel() {
                         id = doc.id,
                         urlImagen = doc.getString("urlImagen") ?: "",
                         estado = "aceptado",
-                        fechaSubida = fechaTexto
+                        fechaSubida = fechaTexto,
+                        usoVideo = doc.getString("uso_video") ?: "pendiente"
                     )
                 } ?: emptyList()
                 _favoritos.value = lista

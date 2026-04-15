@@ -33,11 +33,12 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.graphics.ColorFilter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () -> Unit, viewModel: EventosViewModel = viewModel()) {
-    val logo = painterResource(R.drawable.eventcoord_logo)
+    val logo = painterResource(R.drawable.eventcoord_logo_v2)
     val usuario = painterResource(R.drawable.usuario)
     val presentacion = painterResource(R.drawable.eventcoord_logo_presentacion) // Imagen por defecto
 
@@ -112,7 +113,8 @@ fun HomeScreen(onEvent: (String) -> Unit, onNewevent: () -> Unit, onProfile: () 
                         painter = logo,
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(60.dp)
+                        modifier = Modifier.size(60.dp),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
                     )
                 }
             },

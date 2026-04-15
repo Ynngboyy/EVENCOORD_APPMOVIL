@@ -4,42 +4,36 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.eventcoord.data.model.Actividad
 import com.example.eventcoord.data.model.Evento
 import com.example.eventcoord.ui.base64ToImageBitmap
@@ -49,13 +43,94 @@ import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
 
+// --- 1. MODELO DE PLANTILLA Y DATOS ---
+data class EventTemplate(
+    val nombre: String,
+    val icon: ImageVector,
+    val tipoEvento: String,
+    val notas: String,
+    val programaPredefinido: List<Actividad>
+)
+
+val listaPlantillas = listOf(
+    EventTemplate(
+        nombre = "Boda",
+        icon = Icons.Default.Favorite,
+        tipoEvento = "Boda",
+        notas = "Código de vestimenta: Formal. Por favor, evitar el color blanco.",
+        programaPredefinido = listOf(
+            Actividad(hora = "14:00", titulo = "Ceremonia", esImportante = true),
+            Actividad(hora = "16:00", titulo = "Recepción y Cóctel", esImportante = false),
+            Actividad(hora = "17:00", titulo = "Banquete", esImportante = true),
+            Actividad(hora = "19:00", titulo = "Primer Baile", esImportante = true),
+            Actividad(hora = "20:00", titulo = "Apertura de Pista", esImportante = false)
+        )
+    ),
+    EventTemplate(
+        nombre = "XV años",
+        icon = Icons.Default.Stars,
+        tipoEvento = "XV Años",
+        notas = "Código de vestimenta: Formal-casual.",
+        programaPredefinido = listOf(
+            Actividad(hora = "16:00", titulo = "Misa de Acción de Gracias", esImportante = true),
+            Actividad(hora = "18:00", titulo = "Llegada al Salón", esImportante = false),
+            Actividad(hora = "19:00", titulo = "Vals y Brindis", esImportante = true),
+            Actividad(hora = "20:30", titulo = "Cena", esImportante = false)
+        )
+    ),
+    EventTemplate(
+        nombre = "Graduación",
+        icon = Icons.Default.School,
+        tipoEvento = "Graduación",
+        notas = "Código de vestimenta: Gala.",
+        programaPredefinido = listOf(
+            Actividad(hora = "10:00", titulo = "Acto Académico", esImportante = true),
+            Actividad(hora = "13:00", titulo = "Fotografía de Generación", esImportante = false),
+            Actividad(hora = "21:00", titulo = "Fiesta y Cena", esImportante = true)
+        )
+    ),
+    EventTemplate(
+        nombre = "Cumpleaños",
+        icon = Icons.Default.Cake,
+        tipoEvento = "Fiesta de Cumpleaños",
+        notas = "¡Ven con ganas de divertirte!",
+        programaPredefinido = listOf(
+            Actividad(hora = "15:00", titulo = "Llegada de invitados", esImportante = false),
+            Actividad(hora = "16:30", titulo = "Show y Dinámicas", esImportante = false),
+            Actividad(hora = "18:00", titulo = "Romper la piñata", esImportante = true),
+            Actividad(hora = "19:00", titulo = "Partir el pastel", esImportante = true)
+        )
+    ),
+    EventTemplate(
+        nombre = "Baby Shower",
+        icon = Icons.Default.ChildCare,
+        tipoEvento = "Baby Shower",
+        notas = "Regalos sugeridos: Pañales etapa 1 y 2.",
+        programaPredefinido = listOf(
+            Actividad(hora = "10:00", titulo = "Bienvenida y Desayuno", esImportante = false),
+            Actividad(hora = "11:30", titulo = "Juegos y Dinámicas", esImportante = true),
+            Actividad(hora = "13:00", titulo = "Apertura de Regalos", esImportante = true)
+        )
+    ),
+    EventTemplate(
+        nombre = "En Blanco",
+        icon = Icons.Default.AddBox,
+        tipoEvento = "",
+        notas = "",
+        programaPredefinido = emptyList()
+    )
+)
+
+// --- 2. PANTALLA PRINCIPAL ---
 @Composable
 fun NewEventScreen(onBackClick: () -> Unit) {
-    var actualSection by remember { mutableStateOf("Principal") }
-    var isVisible by remember { mutableStateOf(false) }
-    Scaffold(modifier = Modifier.fillMaxSize(), containerColor = MaterialTheme.colorScheme.background,
+    var plantillaSeleccionada by remember { mutableStateOf<EventTemplate?>(null) }
+    val scrollState = rememberScrollState()
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            val topBarTitle = if (actualSection == "Principal") "Volver" else actualSection
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -63,7 +138,7 @@ fun NewEventScreen(onBackClick: () -> Unit) {
                     .padding(horizontal = 16.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick ={ if (actualSection == "Principal") onBackClick() else actualSection = "Principal"}) {
+                IconButton(onClick = onBackClick) {
                     Icon(
                         imageVector = Icons.Default.ArrowBackIosNew,
                         contentDescription = "Volver",
@@ -72,7 +147,7 @@ fun NewEventScreen(onBackClick: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
-                    text = topBarTitle,
+                    text = "Crear Evento",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -84,98 +159,112 @@ fun NewEventScreen(onBackClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 32.dp, vertical = 16.dp),
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            when (actualSection){
-                "Principal" ->{
-                    Text("PLANTILLAS", color = MaterialTheme.colorScheme.onBackground)
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Row(horizontalArrangement = Arrangement.Center) {
-                        Plantillas("XV años", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant) {
-                            actualSection = "XV años"
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Plantillas("Boda", MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface) {
-                            actualSection = "Boda"
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Plantillas("Graduación", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary) {
-                            actualSection = "Graduacion"
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(25.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "NUEVO EVENTO", color = MaterialTheme.colorScheme.onBackground)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(onClick = { isVisible = !isVisible}) {
-                            Text("Abrir formulario")
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                    AnimatedVisibility(visible = isVisible) {
-                        Nuevo("","")
-                    }
+
+            Text(
+                text = "PLANTILLAS RÁPIDAS",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // CARRUSEL DE PLANTILLAS
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(listaPlantillas) { template ->
+                    val isSelected = plantillaSeleccionada == template
+                    TemplateCard(
+                        template = template,
+                        isSelected = isSelected,
+                        onClick = { plantillaSeleccionada = template }
+                    )
                 }
-                "XV años" -> XVseccion()
-                "Boda" -> BodaSeccion()
-                "Graduacion" -> GraduacionSeccion()
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // MENSAJE INICIAL O FORMULARIO
+            if (plantillaSeleccionada == null) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Selecciona una plantilla arriba\npara comenzar",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            } else {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(tween(500)),
+                    exit = fadeOut()
+                ) {
+                    // Le pasamos la plantilla seleccionada al formulario
+                    NuevoFormulario(template = plantillaSeleccionada!!)
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
-
 @Composable
-fun Plantillas(text: String, containerColor: Color, contentColor: Color, onClick: () -> Unit){
+fun TemplateCard(template: EventTemplate, isSelected: Boolean, onClick: () -> Unit) {
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+
     Card(
         modifier = Modifier
-            .width(100.dp)
-            .height(98.dp)
+            .width(110.dp)
+            .height(110.dp)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 8.dp else 2.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = text, color = contentColor)
+        Column(
+            modifier = Modifier.fillMaxSize().padding(8.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = template.icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = template.nombre,
+                color = contentColor,
+                fontSize = 13.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }
 
-@Composable
-fun XVseccion(){
-    Nuevo(tipoEventoInicial = "XV Años", notasIniciales = "Código de vestimenta: Formal-casual")
-}
-
-@Composable
-fun BodaSeccion(){
-    Nuevo(tipoEventoInicial = "Boda", notasIniciales = "Código de vestimenta: Nadie usa el color blanco")
-}
-
-@Composable
-fun GraduacionSeccion(){
-    Nuevo(tipoEventoInicial = "Graduación", notasIniciales = "Código de vestimenta: Colores azul y negro")
-}
-
-/* compartir evento dirigido a la pagina*/
-
+// --- 3. EL FORMULARIO (NUEVO) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Nuevo(
-    tipoEventoInicial: String = "",
-    notasIniciales: String = ""
-) {
+fun NuevoFormulario(template: EventTemplate) {
     var nombre by remember { mutableStateOf("") }
-    var tipoEvento by remember { mutableStateOf(tipoEventoInicial) }
+    var tipoEvento by remember { mutableStateOf("") }
     var horaEvento by remember { mutableStateOf("") }
     var fecha by remember { mutableStateOf("") }
     var ubicacion by remember { mutableStateOf("") }
-    var notas by remember { mutableStateOf(notasIniciales) }
+    var notas by remember { mutableStateOf("") }
     var anfitrion by remember { mutableStateOf("") }
+
     var mostrarDatePicker by remember { mutableStateOf(false) }
     var mostrarTimePicker by remember { mutableStateOf(false) }
     var mostrarTimePicker2 by remember { mutableStateOf(false) }
@@ -183,6 +272,17 @@ fun Nuevo(
     var nuevaHora by remember { mutableStateOf("") }
     var nuevoTitulo by remember { mutableStateOf("") }
     var portadaBase64 by remember { mutableStateOf("") }
+
+    val actividades = remember { mutableStateListOf<Actividad>() }
+
+    // ¡MAGIA!: Cuando la plantilla cambia, pre-llenamos todos los datos
+    LaunchedEffect(template) {
+        tipoEvento = template.tipoEvento
+        notas = template.notas
+        actividades.clear()
+        actividades.addAll(template.programaPredefinido)
+    }
+
     val context = LocalContext.current
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -195,24 +295,24 @@ fun Nuevo(
     val datePickerState = rememberDatePickerState()
     val timePickerStatePrincipal = rememberTimePickerState()
     val timePickerStatePrograma = rememberTimePickerState()
-    val scrollState = rememberScrollState()
-    val actividades = remember { mutableStateListOf<Actividad>() }
+
     Card(
-        modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface) // CAMBIO
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = if (tipoEventoInicial.isEmpty()) "Detalles del Nuevo Evento" else "Configurar Plantilla",
+                text = if (template.nombre == "En Blanco") "Detalles del Evento" else "Configurar ${template.nombre}",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary // CAMBIO
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(16.dp))
-            // --- SECCIÓN DE PORTADA DEL EVENTO ---
+
+            // --- PORTADA ---
             Text(
                 text = "Portada del Evento",
                 style = MaterialTheme.typography.titleMedium,
@@ -222,16 +322,13 @@ fun Nuevo(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp) // Altura para una portada elegante
+                    .height(180.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // Fondo gris claro si no hay foto
-                    .clickable {
-                        photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    },
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 contentAlignment = Alignment.Center
             ) {
                 if (portadaBase64.isNotEmpty() && base64ToImageBitmap(portadaBase64) != null) {
-                    // --- VISTA PREVIA DE LA FOTO SELECCIONADA ---
                     Image(
                         bitmap = base64ToImageBitmap(portadaBase64)!!,
                         contentDescription = "Portada seleccionada",
@@ -246,78 +343,52 @@ fun Nuevo(
                     )
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.AddAPhoto,
-                            contentDescription = "Subir portada",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(48.dp)
-                        )
+                        Icon(Icons.Default.AddAPhoto, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(48.dp))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Toca para agregar una portada",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Text("Toca para agregar una portada", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
+
+            // --- CAMPOS DE TEXTO ---
             TextField(
                 value = nombre,
-                onValueChange = { nombre = it }, // Actualiza la variable cuando el usuario escribe
+                onValueChange = { nombre = it },
                 label = { Text("Nombre Evento") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                )
+                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent)
             )
             TextField(
                 value = tipoEvento,
-                onValueChange = { tipoEvento = it }, // Actualiza la variable cuando el usuario escribe
+                onValueChange = { tipoEvento = it },
                 label = { Text("Tipo de Evento") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                ),
-                enabled = tipoEventoInicial.isEmpty()
+                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent)
             )
             TextField(
                 value = anfitrion,
-                onValueChange = { anfitrion = it }, // Actualiza la variable cuando el usuario escribe
+                onValueChange = { anfitrion = it },
                 label = { Text("Anfitríon (es)") },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                )
+                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent)
             )
             OutlinedTextField(
                 value = fecha,
                 onValueChange = { },
                 label = { Text("Fecha del Evento") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 readOnly = true,
-                trailingIcon = {
-                    Icon(Icons.Default.DateRange, contentDescription = "Seleccionar fecha")
-                },
+                trailingIcon = { Icon(Icons.Default.DateRange, "Seleccionar fecha") },
                 interactionSource = remember { MutableInteractionSource() }.also { interactionSource ->
                     LaunchedEffect(interactionSource) {
-                        interactionSource.interactions.collect {
-                            if (it is androidx.compose.foundation.interaction.PressInteraction.Release) {
-                                mostrarDatePicker = true // Abre el calendario al tocar
-                            }
-                        }
+                        interactionSource.interactions.collect { if (it is androidx.compose.foundation.interaction.PressInteraction.Release) mostrarDatePicker = true }
                     }
                 }
             )
@@ -325,115 +396,76 @@ fun Nuevo(
                 value = horaEvento,
                 onValueChange = { },
                 label = { Text("Hora de inicio") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 readOnly = true,
-                trailingIcon = {
-                    Icon(Icons.Default.AccessTime, contentDescription = "Seleccionar hora")
-                },
+                trailingIcon = { Icon(Icons.Default.AccessTime, "Seleccionar hora") },
                 interactionSource = remember { MutableInteractionSource() }.also { interactionSource ->
                     LaunchedEffect(interactionSource) {
-                        interactionSource.interactions.collect {
-                            if (it is androidx.compose.foundation.interaction.PressInteraction.Release) {
-                                mostrarTimePicker = true
-                            }
-                        }
+                        interactionSource.interactions.collect { if (it is androidx.compose.foundation.interaction.PressInteraction.Release) mostrarTimePicker = true }
                     }
                 }
             )
             TextField(
                 value = ubicacion,
-                onValueChange = { ubicacion = it }, // Actualiza la variable cuando el usuario escribe
+                onValueChange = { ubicacion = it },
                 label = { Text("Ubicación del Evento") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                )
+                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent)
             )
             TextField(
                 value = notas,
-                onValueChange = { notas = it }, // Actualiza la variable cuando el usuario escribe
+                onValueChange = { notas = it },
                 label = { Text("Notas") },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                ),
-                minLines = 3
+                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent)
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Programa",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary, // CAMBIO
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- PROGRAMA ---
+            Text("Programa", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = nuevaHora,
                     onValueChange = { },
                     label = { Text("Hora") },
                     modifier = Modifier.weight(1.5f),
                     readOnly = true,
-                    trailingIcon = {
-                        Icon(Icons.Default.AccessTime, contentDescription = "Seleccionar hora")
-                    },
+                    trailingIcon = { Icon(Icons.Default.AccessTime, null) },
                     interactionSource = remember { MutableInteractionSource() }.also { interactionSource ->
                         LaunchedEffect(interactionSource) {
-                            interactionSource.interactions.collect {
-                                if (it is androidx.compose.foundation.interaction.PressInteraction.Release) {
-                                    mostrarTimePicker2 = true
-                                }
-                            }
+                            interactionSource.interactions.collect { if (it is androidx.compose.foundation.interaction.PressInteraction.Release) mostrarTimePicker2 = true }
                         }
                     }
                 )
                 TextField(
                     value = nuevoTitulo,
-                    onValueChange = { nuevoTitulo = it }, // Actualiza la variable cuando el usuario escribe
+                    onValueChange = { nuevoTitulo = it },
                     label = { Text("Título") },
                     modifier = Modifier.weight(2f),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                    )
+                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent)
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = {
                     if (nuevaHora.isNotBlank() && nuevoTitulo.isNotBlank()) {
-                        actividades.add(Actividad(nuevaHora, nuevoTitulo,"",esImportante = esImportante))
-                        nuevaHora = ""
-                        nuevoTitulo = ""
-                        esImportante = false
+                        actividades.add(Actividad(hora = nuevaHora, titulo = nuevoTitulo, esImportante = esImportante))
+                        nuevaHora = ""; nuevoTitulo = ""; esImportante = false
                     }
-                }) {
-                    Text("+")
-                }
+                }) { Text("+") }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("¿Es importante?", color = MaterialTheme.colorScheme.onSurface)
                 Checkbox(checked = esImportante, onCheckedChange = { esImportante = it })
             }
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Vista Previa del Programa:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+
             Spacer(modifier = Modifier.height(16.dp))
+
             if (actividades.isEmpty()) {
                 Text("No hay actividades aún...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 12.sp)
             } else {
@@ -443,46 +475,33 @@ fun Nuevo(
                         actividad = actividad,
                         esElUltimo = index == listaOrdenada.size - 1,
                         onBorrar = { actividades.remove(actividad) },
-                        onEditar = {
-                            nuevaHora = actividad.hora
-                            nuevoTitulo = actividad.titulo
-                            esImportante = actividad.esImportante
-                            actividades.remove(actividad)
-                        }
+                        onEditar = { nuevaHora = actividad.hora; nuevoTitulo = actividad.titulo; esImportante = actividad.esImportante; actividades.remove(actividad) }
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(32.dp))
+
             Button(
                 onClick = {
                     if (nombre.isNotBlank()) {
                         guardarNuevoEvento(
-                            titulo = nombre,
-                            anfitrion = anfitrion,
-                            descripcion = notas,
-                            fecha = fecha,
-                            hora = horaEvento.ifBlank { "00:00" },
-                            lugar = ubicacion,
-                            portada = portadaBase64,
+                            titulo = nombre, anfitrion = anfitrion, descripcion = notas, fecha = fecha,
+                            hora = horaEvento.ifBlank { "00:00" }, lugar = ubicacion, portada = portadaBase64,
                             programa = actividades.toList(),
-                            onSuccess = {
-                                nombre = ""; fecha = ""; ubicacion = ""; actividades.clear()
-                                println("Evento guardado correctamente")
-                            },
+                            onSuccess = { nombre = ""; fecha = ""; ubicacion = ""; actividades.clear(); println("Evento guardado") },
                             onError = { error -> println("Error: ${error.message}") }
                         )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 enabled = nombre.isNotBlank()
             ) {
                 Text("Confirmar y Guardar Evento", color = MaterialTheme.colorScheme.onPrimary)
             }
-            // --- DIÁLOGO DEL CALENDARIO (DATE PICKER) ---
+
+            // --- DIÁLOGOS DE TIEMPO Y FECHA ---
             if (mostrarDatePicker) {
                 DatePickerDialog(
                     onDismissRequest = { mostrarDatePicker = false },
@@ -495,33 +514,20 @@ fun Nuevo(
                             mostrarDatePicker = false
                         }) { Text("Aceptar") }
                     },
-                    dismissButton = {
-                        TextButton(onClick = { mostrarDatePicker = false }) { Text("Cancelar") }
-                    }
-                ) {
-                    DatePicker(state = datePickerState)
-                }
+                    dismissButton = { TextButton(onClick = { mostrarDatePicker = false }) { Text("Cancelar") } }
+                ) { DatePicker(state = datePickerState) }
             }
-            // --- DIÁLOGO DEL RELOJ (TIME PICKER) ---
             if (mostrarTimePicker) {
                 AlertDialog(
                     onDismissRequest = { mostrarTimePicker = false },
                     confirmButton = {
                         TextButton(onClick = {
-                            val horaFormateada = String.format("%02d:%02d", timePickerStatePrincipal.hour, timePickerStatePrincipal.minute)
-                            horaEvento = horaFormateada
+                            horaEvento = String.format("%02d:%02d", timePickerStatePrincipal.hour, timePickerStatePrincipal.minute)
                             mostrarTimePicker = false
                         }) { Text("Aceptar") }
                     },
-                    dismissButton = {
-                        TextButton(onClick = { mostrarTimePicker = false }) { Text("Cancelar") }
-                    },
-                    text = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Selecciona la hora", modifier = Modifier.padding(bottom = 16.dp))
-                            TimePicker(state = timePickerStatePrincipal)
-                        }
-                    }
+                    dismissButton = { TextButton(onClick = { mostrarTimePicker = false }) { Text("Cancelar") } },
+                    text = { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("Selecciona la hora", modifier = Modifier.padding(bottom = 16.dp)); TimePicker(state = timePickerStatePrincipal) } }
                 )
             }
             if (mostrarTimePicker2) {
@@ -529,20 +535,12 @@ fun Nuevo(
                     onDismissRequest = { mostrarTimePicker2 = false },
                     confirmButton = {
                         TextButton(onClick = {
-                            val horaFormateada = String.format("%02d:%02d", timePickerStatePrograma.hour, timePickerStatePrograma.minute)
-                            nuevaHora = horaFormateada
+                            nuevaHora = String.format("%02d:%02d", timePickerStatePrograma.hour, timePickerStatePrograma.minute)
                             mostrarTimePicker2 = false
                         }) { Text("Aceptar") }
                     },
-                    dismissButton = {
-                        TextButton(onClick = { mostrarTimePicker2 = false }) { Text("Cancelar") }
-                    },
-                    text = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Selecciona la hora", modifier = Modifier.padding(bottom = 16.dp))
-                            TimePicker(state = timePickerStatePrograma)
-                        }
-                    }
+                    dismissButton = { TextButton(onClick = { mostrarTimePicker2 = false }) { Text("Cancelar") } },
+                    text = { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("Selecciona la hora", modifier = Modifier.padding(bottom = 16.dp)); TimePicker(state = timePickerStatePrograma) } }
                 )
             }
         }
@@ -608,7 +606,8 @@ fun guardarNuevoEvento(titulo: String, anfitrion: String, descripcion: String, f
     // 2. Preparamos la Subcolección del Programa
     programa.forEach { actividad ->
         val actividadRef = nuevoEventoRef.collection("programa").document()
-        batch.set(actividadRef, actividad)
+        val actividadConId = actividad.copy(id = actividadRef.id)
+        batch.set(actividadRef, actividadConId)
     }
     // 3. Ejecutamos todo de un solo golpe
     batch.commit()

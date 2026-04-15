@@ -29,6 +29,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.core.content.edit
 
 @Composable
@@ -39,7 +40,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onForgotPassword: () -> Unit, onRegi
     val sharedPreferences = remember { context.getSharedPreferences("EventCoordPrefs", Context.MODE_PRIVATE) } //Abrimos un guardado automatico
     var isRemember by remember { mutableStateOf(sharedPreferences.getBoolean("recordar_activo", false)) } // Toma o no en cuenta las preferencias
     var isLoading by remember { mutableStateOf(false) } // Controla si se ve la carga
-    val logogris = painterResource(R.drawable.eventcoord_logo_gris) // Imagen del logo
+    val logogris = painterResource(R.drawable.eventcoord_logo_v2) // Imagen del logo
     // NOTIFICACIONES
     val notificationProblem = remember { mutableStateOf(false)} // Problema con el inicio de sesión
     val notificationCampos = remember { mutableStateOf(false)} // Campos faltantes
@@ -61,9 +62,10 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onForgotPassword: () -> Unit, onRegi
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .width(280.dp)
-                        .height(280.dp)
-                        .padding(8.dp)
+                        .width(320.dp)
+                        .height(260.dp)
+                        .padding(8.dp),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
                 )
                 Spacer(modifier = Modifier.height(32.dp)) // Espacios para una mejor presentacion
                 TextField(

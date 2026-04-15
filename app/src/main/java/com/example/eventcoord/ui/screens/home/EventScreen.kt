@@ -12,7 +12,23 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -23,9 +39,47 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,6 +124,13 @@ import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.OutlinedButton
+import java.util.Calendar
+import kotlin.math.abs
 
 @SuppressLint("UseKtx")
 fun generarCodigoQR(content: String): Bitmap? {
@@ -93,6 +154,7 @@ fun generarCodigoQR(content: String): Bitmap? {
 @Composable
 fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetailViewModel = viewModel(), reproductorViewModel: ReproductorViewModel = viewModel(), videoViewModel: VideoViewModel = viewModel()) {
     var actualSection by remember { mutableStateOf("Principal") }
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) } // <-- NUEVA VARIABLE
 
     LaunchedEffect(eventoId) {
         viewModel.cargarEventoPorId(eventoId)
@@ -105,7 +167,7 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else {
-        val videosState by produceState<List<String>>(initialValue = emptyList()) {
+        val videosState by produceState(initialValue = emptyList()) {
             try {
                 FirebaseFirestore.getInstance()
                     .collection("favoritos")
@@ -119,7 +181,6 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
                 Log.e("JDCAR_DEBUG", "ERROR DE SALIDA: ${e.message}")
             }
         }
-
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.background,
@@ -277,10 +338,21 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
                                 Spacer(modifier = Modifier.height(32.dp))
+                                OutlinedButton(
+                                    onClick = { mostrarDialogoEliminar = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Eliminar Evento")
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Eliminar Evento", fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(32.dp))
                             }
                         }
                         "Descripcion" -> DescripcionSeccion(evento = eventoCargado)
-                        "Programa" -> ProgramaSeccion(actividades = eventoCargado.programa)
+                        "Programa" -> ProgramaSeccion(eventoId = eventoId, actividades = eventoCargado.programa, viewModel = viewModel)
                         "Galeria" -> GaleriaSeccion(eventoId = eventoCargado.id)
                         "Favoritos" -> FavoritosSeccion(eventoId = eventoCargado.id, videoViewModel = videoViewModel)
                         "AccesoQR" -> AccesoQR(eventoId = eventoCargado.id)
@@ -288,6 +360,30 @@ fun EventScreen(onBackClick: () -> Unit, eventoId: String, viewModel: EventDetai
                         "Reproductor" -> GaleriaVideosScreen(reproductorVM = reproductorViewModel, videosFromFirebase = videosState)
                     }
                 }
+            }
+            // --- DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR EVENTO ---
+            if (mostrarDialogoEliminar) {
+                AlertDialog(
+                    onDismissRequest = {
+
+                        mostrarDialogoEliminar = false },
+                    title = { Text("¿Eliminar Evento?") },
+                    text = { Text("Esta acción no se puede deshacer. Se borrará toda la información, el programa y la lista de invitados.") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                mostrarDialogoEliminar = false
+                                viewModel.eliminarEventoTotal(eventoId) {
+                                    onBackClick()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) { Text("Sí, eliminar") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { mostrarDialogoEliminar = false }) { Text("Cancelar") }
+                    }
+                )
             }
         }
     }
@@ -369,28 +465,157 @@ fun DescripcionSeccion(evento: Evento) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgramaSeccion(actividades: List<Actividad>) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())
-    ) {
-        Text(
-            text = "Programa de Actividades",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        if (actividades.isEmpty()) {
-            Text("No se han registrado actividades para este evento.", color = MaterialTheme.colorScheme.onBackground)
-        } else {
-            val listaOrdenada = actividades.sortedBy { it.hora }
-            listaOrdenada.forEachIndexed { index, actividad ->
-                FilaDeActividadConsulta(
-                    actividad = actividad,
-                    esElUltimo = index == listaOrdenada.size - 1
+fun ProgramaSeccion(eventoId: String, actividades: List<Actividad>, viewModel: EventDetailViewModel) {
+    var mostrarDialogo by remember { mutableStateOf(false) }
+
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { mostrarDialogo = true },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Agregar Actividad",
+                    tint = Color.White
                 )
             }
+        },
+        containerColor = Color.Transparent
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(
+                text = "Programa de Actividades",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            if (actividades.isEmpty()) {
+                Text(
+                    "No se han registrado actividades.",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            } else {
+                val listaOrdenada = actividades.sortedBy { it.hora }
+                listaOrdenada.forEachIndexed { index, actividad ->
+                    FilaDeActividadEdit(
+                        actividad = actividad,
+                        esElUltimo = index == listaOrdenada.size - 1,
+                        onDelete = { viewModel.eliminarActividad(eventoId, actividad.id) }
+                    )
+                }
+            }
+        }
+    }
+
+    if (mostrarDialogo) {
+        var esImportante by remember { mutableStateOf(false) }
+        var nuevoTitulo by remember { mutableStateOf("") }
+        val cal = remember { Calendar.getInstance() }
+
+        @OptIn(ExperimentalMaterial3Api::class)
+        val timeState = rememberTimePickerState(
+            initialHour = cal.get(Calendar.HOUR_OF_DAY),
+            initialMinute = cal.get(Calendar.MINUTE),
+            is24Hour = true
+        )
+
+        AlertDialog(
+            onDismissRequest = { mostrarDialogo = false },
+            title = { Text("Nueva Actividad") },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    OutlinedTextField(
+                        value = nuevoTitulo,
+                        onValueChange = { nuevoTitulo = it },
+                        label = { Text("Título de la actividad") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        "Hora de inicio",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    @OptIn(ExperimentalMaterial3Api::class)
+                    TimeInput(state = timeState)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .clickable { esImportante = !esImportante },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = esImportante,
+                            onCheckedChange = { esImportante = it }
+                        )
+                        Text(
+                            "¿Es importante?",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (nuevoTitulo.isNotBlank()) {
+                            val horaString = timeState.hour.toString().padStart(2, '0')
+                            val minutoString = timeState.minute.toString().padStart(2, '0')
+                            val horaFormateada = "$horaString:$minutoString"
+                            viewModel.agregarActividad(
+                                eventoId = eventoId,
+                                actividad = Actividad(
+                                    hora = horaFormateada,
+                                    titulo = nuevoTitulo,
+                                    esImportante = esImportante
+                                )
+                            )
+                            mostrarDialogo = false
+                        }
+                    }
+                ) { Text("Guardar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogo = false }) { Text("Cancelar") }
+            }
+        )
+    }
+}
+
+@Composable
+fun FilaDeActividadEdit(actividad: Actividad, esElUltimo: Boolean, onDelete: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(30.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+            if (!esElUltimo) {
+                Box(modifier = Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)))
+            }
+        }
+        Column(modifier = Modifier.padding(start = 8.dp, bottom = 16.dp).weight(1f)) {
+            Text(text = actividad.hora, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+            Text(text = actividad.titulo, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
+        }
+        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.Default.Delete, contentDescription = "Borrar", tint = MaterialTheme.colorScheme.error)
         }
     }
 }
@@ -444,7 +669,7 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
     val scope = rememberCoroutineScope()
     val urlLimpia = remember(foto.urlImagen) { foto.urlImagen.trim() }
 
-    val grosorBorde = (Math.abs(offsetX.value) / 60f).coerceIn(0f, 4f).dp
+    val grosorBorde = (abs(offsetX.value) / 60f).coerceIn(0f, 4f).dp
 
     val colorBorde = when {
         offsetX.value > 10 -> Color.Green.copy(alpha = (offsetX.value / 300f).coerceIn(0f, 0.9f))
@@ -456,7 +681,7 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
             .fillMaxSize()
             .offset { IntOffset(offsetX.value.roundToInt(), 0) }
             .graphicsLayer { rotationZ = offsetX.value / 25f
-                val scale = (1f - (Math.abs(offsetX.value) / 3000f)).coerceIn(0.9f, 1f)
+                val scale = (1f - (abs(offsetX.value) / 3000f)).coerceIn(0.9f, 1f)
                 scaleX = scale
                 scaleY = scale}
             .pointerInput(foto.id) {
@@ -481,16 +706,38 @@ fun TarjetaInteractiva(foto: FotoItem, onSwipeLeft: () -> Unit, onSwipeRight: ()
         border = BorderStroke(width = grosorBorde, color = colorBorde),
         colors = CardDefaults.cardColors(containerColor = Color.Black)
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(urlLimpia)
-                .crossfade(true)
-                .build(),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit,
-            onError = { error -> println("ERROR_COIL: ${error.result.throwable.message}") }
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(urlLimpia)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                onError = { error -> println("ERROR_COIL: ${error.result.throwable.message}") }
+            )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (offsetX.value > 20f) {
+                    // Deslizando a la derecha (Aceptar)
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Aceptar",
+                        tint = Color.Green.copy(alpha = (offsetX.value / 300f).coerceIn(0f, 1f)),
+                        modifier = Modifier.size(120.dp)
+                    )
+                } else if (offsetX.value < -20f) {
+                    // Deslizando a la izquierda (Rechazar)
+                    Icon(
+                        imageVector = Icons.Default.Cancel,
+                        contentDescription = "Rechazar",
+                        tint = Color.Red.copy(alpha = (-offsetX.value / 300f).coerceIn(0f, 1f)),
+                        modifier = Modifier.size(120.dp)
+                    )
+                }
+            }
+        }
+
     }
 }
 
@@ -578,12 +825,26 @@ fun FavoritosSeccion(
                                 .clickable { fotoSeleccionada = foto.urlImagen },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            AsyncImage(
-                                model = foto.urlImagen,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                AsyncImage(
+                                    model = foto.urlImagen,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                if (foto.usoVideo == "usado") {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Usado en video",
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(6.dp)
+                                            .background(Color(0xFF4CAF50), CircleShape)
+                                            .padding(2.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

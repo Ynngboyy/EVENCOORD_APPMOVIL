@@ -14,6 +14,7 @@ data class Evento(
 )
 
 data class Actividad(
+    val id: String = "",
     val hora: String = "",
     val titulo: String = "",
     val descripcion: String = "",
